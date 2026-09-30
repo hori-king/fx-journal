@@ -41,34 +41,48 @@ function AuthForm({ onLogin }: AuthFormProps) {
     onLogin();
   }
   return (
-    <div>
-      <h1>{isSignUp ? "新規登録" : "ログイン"}</h1>
+    <main className="auth-page">
+      <section className="auth-card">
+        <div className="auth-brand-mark" aria-hidden="true">FX</div>
+        <p className="auth-eyebrow">FX TRADING JOURNAL</p>
+        <h1>{isSignUp ? "新規登録" : "ログイン"}</h1>
 
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="メールアドレス"
-      />
+        <div className="auth-fields">
+          <label htmlFor="auth-email">メールアドレス</label>
+          <input
+            id="auth-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            autoComplete="email"
+          />
 
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="パスワード"
-      />
+          <label htmlFor="auth-password">パスワード</label>
+          <input
+            id="auth-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="パスワードを入力"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+          />
+        </div>
 
-      <button onClick={handleSubmit}>
-        {isSignUp ? "新規登録" : "ログイン"}
-      </button>
+        <button className="auth-submit" onClick={handleSubmit}>
+          {isSignUp ? "アカウントを作成" : "ログイン"}
+        </button>
 
-      {message && <p>{message}</p>}
+        {message && <p className="auth-message" role="status">{message}</p>}
 
-      <button onClick={() => setIsSignUp((current) => !current)}>
-        {isSignUp ? "ログイン画面に戻る" : "新規登録はこちら"}
-      </button>
-
-    </div>
+        <div className="auth-switch">
+          <span>{isSignUp ? "アカウントをお持ちですか？" : "初めてご利用ですか？"}</span>
+          <button type="button" onClick={() => setIsSignUp((current) => !current)}>
+            {isSignUp ? "ログイン" : "新規登録"}
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
 
