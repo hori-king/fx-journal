@@ -87,14 +87,13 @@ button:disabled {
 .logout-button {
   width: auto;
   padding: 9px 16px;
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: #111827;
+  color: #f8fafc;
+  border: 1px solid #334155;
 }
 
 .logout-button:hover {
-  background: #f9fafb;
-  color: #111827;
+  background: #1e293b;
 }
 
 /* =========================
@@ -121,11 +120,11 @@ button:disabled {
 }
 
 .dashboard-card {
-  background: white;
   padding: 22px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #1e293b;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: #111827;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
@@ -133,48 +132,47 @@ button:disabled {
 
 .dashboard-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-card-title {
   margin: 0 0 10px;
-  color: #6b7280;
+  color: #94a3b8;
   font-size: 14px;
   font-weight: 600;
 }
 
 .dashboard-card-value {
   margin: 0;
-  color: #111827;
+  color: #f8fafc;
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
 
 /* Dashboard result colors */
-
 .dashboard-card.win {
-  border-left: 4px solid #16a34a;
+  border-left: 4px solid #22c55e;
 }
 
 .dashboard-card.win .dashboard-card-value {
-  color: #16a34a;
+  color: #22c55e;
 }
 
 .dashboard-card.loss {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid #ef4444;
 }
 
 .dashboard-card.loss .dashboard-card-value {
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .dashboard-card.draw {
-  border-left: 4px solid #6b7280;
+  border-left: 4px solid #64748b;
 }
 
 .dashboard-card.draw .dashboard-card-value {
-  color: #6b7280;
+  color: #94a3b8;
 }
 
 /* =========================
@@ -186,22 +184,31 @@ button:disabled {
   padding: 0;
   display: grid;
   gap: 14px;
+  color: #f8fafc;
 }
 
+/* =========================
+   取引カード
+========================= */
+
 .trade-card {
-  background: white;
+  background: #111827;
   padding: 20px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #1e293b;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+
   transition:
     transform 0.2s,
     box-shadow 0.2s;
 }
 
+/* 取引カード ホバー */
+
 .trade-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* =========================
@@ -215,14 +222,19 @@ button:disabled {
   gap: 16px;
 }
 
+/* 取引カードの日付 */
+
 .trade-card-date {
   margin: 0 0 6px;
-  color: #888;
+  color: #64748b;
   font-size: 13px;
 }
 
+/* 取引カード銘柄名 */
+
 .trade-card h3 {
   margin: 0;
+  color: #f8fafc;
   font-size: 22px;
 }
 
@@ -240,54 +252,69 @@ button:disabled {
 }
 
 .direction-badge.buy {
-  background: #eef5ff;
-  color: #2563eb;
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
 }
 
 .direction-badge.sell {
-  background: #fff0f0;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 .result-badge.win {
-  background: #eaf8ef;
-  color: #16a34a;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
 }
 
 .result-badge.loss {
-  background: #ffe8e8;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 .result-badge.draw {
-  background: #f1f1f1;
-  color: #666;
+  background: #1e293b;
+  color: #94a3b8;
 }
 
+/* =========================
+   取引損益
+========================= */
+
 .trade-profit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   margin-top: 20px;
   padding: 16px;
+
   border-radius: 10px;
-  background: #f8f9fa;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: #0f172a;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.trade-profit span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .trade-profit strong {
   font-size: 22px;
 }
 
-.trade-profit.win strong {
-  color: #16a34a;
+.trade-profit.win {
+  color: #4ade80;
 }
 
-.trade-profit.loss strong {
-  color: #dc2626;
+.trade-profit.loss {
+  color: #f87171;
 }
 
-.trade-profit.draw strong {
-  color: #666;
+.trade-profit.draw {
+  color: #94a3b8;
 }
 
 .trade-card-info {
@@ -295,22 +322,28 @@ button:disabled {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-top: 16px;
+  margin-bottom: 18px;
 }
 
 .trade-card-info div {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  padding: 12px;
+  background: #0f172a;
+  border-radius: 8px;
 }
 
-.trade-card-info span,
-.trade-card-reason span {
+.trade-card-info span {
+  display: block;
+  margin-bottom: 5px;
+  color: #64748b;
   font-size: 12px;
-  color: #888;
 }
 
 .trade-card-info strong {
-  font-size: 15px;
+  font-size: 14px;
+  color: #e2e8f0;
 }
 
 .trade-card-reason {
@@ -319,15 +352,27 @@ button:disabled {
 
 .trade-card-reason p {
   margin: 6px 0 0;
+  color: #e2e8f0;
 }
+
+/* =========================
+   取引カード画像
+========================= */
 
 .trade-card-image {
   display: block;
   width: 100%;
-  max-width: 400px;
-  margin-top: 18px;
+  max-width: 600px;
+  max-height: 320px;
+  object-fit: contain;
+  margin: 20px auto;
+  border: 1px solid #1e293b;
   border-radius: 10px;
 }
+
+/* =========================
+   取引カードボタン
+========================= */
 
 .trade-card-actions {
   display: flex;
@@ -337,6 +382,24 @@ button:disabled {
 
 .trade-card-actions button {
   flex: 1;
+  width: auto;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* 詳細ボタン */
+
+.trade-card-actions .delete-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 削除ボタン */
+
+.trade-card-actions .delete-button,
+.detail-delete-button {
+  background: transparent;
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* =========================
@@ -397,90 +460,8 @@ button:disabled {
   font-size: 14px;
 }
 
-.trade-profit {
-  font-size: 20px;
-  font-weight: 700;
-}
-
 .trade-card-profit .trade-profit {
   font-size: 24px;
-}
-
-.trade-profit.win {
-  color: #16a34a;
-}
-
-.trade-profit.loss {
-  color: #dc2626;
-}
-
-.trade-profit.draw {
-  color: #6b7280;
-}
-
-/* =========================
-   Trade Information
-========================= */
-
-.trade-card-info {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.trade-card-info div {
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.trade-card-info span {
-  display: block;
-  margin-bottom: 5px;
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-.trade-card-info strong {
-  font-size: 14px;
-}
-
-/* =========================
-   Trade Chart Image
-========================= */
-
-.trade-card-image {
-  display: block;
-  width: 100%;
-  max-width: 500px;
-  max-height: 320px;
-  object-fit: contain;
-  margin: 0 auto 18px;
-  border-radius: 10px;
-}
-
-/* =========================
-   Trade Card Buttons
-========================= */
-
-.trade-card-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.trade-card-actions button {
-  width: auto;
-}
-
-.trade-card-actions .delete-button {
-  background: white;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.trade-card-actions .delete-button:hover {
-  background: #fef2f2;
 }
 
 /* =========================
@@ -491,6 +472,7 @@ button:disabled {
   max-width: 900px;
   margin: 0 auto;
   padding: 32px 0 48px;
+  color: #f8fafc;
 }
 
 .trade-form-header {
@@ -530,10 +512,10 @@ button:disabled {
 
 .direction-button {
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #334155;
   border-radius: 10px;
-  background: #fafafa;
-  color: #666;
+  background: #0f172a;
+  color: #94a3b8;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -541,19 +523,19 @@ button:disabled {
 }
 
 .direction-button:hover {
-  background: #f3f3f3;
+  background: #1e293b;
 }
 
 .direction-button.buy.active {
-  border-color: #198754;
-  background: #eaf7ef;
-  color: #198754;
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
 }
 
 .direction-button.sell.active {
-  border-color: #dc3545;
-  background: #fceced;
-  color: #dc3545;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
 }
 
 /* =========================
@@ -604,12 +586,13 @@ button:disabled {
 
 .form-section-header h3 {
   margin: 0;
+  color: #f8fafc;
   font-size: 17px;
 }
 
 .form-section-header span {
   font-size: 12px;
-  color: #999;
+  color: #64748b;
 }
 
 /* フォーム */
@@ -631,26 +614,32 @@ button:disabled {
 .chart-image-field label {
   font-size: 13px;
   font-weight: 600;
-  color: #444;
+  color: #cbd5e1;
 }
 
+/* 入力欄 */
 .form-field input,
 .form-field select,
 .chart-image-field input[type="file"] {
   width: 100%;
   box-sizing: border-box;
   padding: 12px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid #334155;
   border-radius: 10px;
-  background: #fafafa;
+  background: #0f172a;
+  color: #f8fafc;
   font-size: 14px;
   outline: none;
 }
 
 .form-field input:focus,
 .form-field select:focus {
-  border-color: #999;
-  background: #fff;
+  border-color: #64748b;
+  background: #111827;
+}
+
+.form-field input::placeholder {
+  color: #64748b;
 }
 
 .symbol-field {
@@ -668,11 +657,11 @@ button:disabled {
 
   list-style: none;
 
-  background: white;
-  border: 1px solid #e1e5ea;
+  background: #111827;
+  border: 1px solid #334155;
   border-radius: 10px;
 
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 
   z-index: 10;
 }
@@ -681,11 +670,11 @@ button:disabled {
   padding: 11px 14px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: #e2e8f0;
 }
 
 .symbol-field li:hover {
-  background: #f5f7fa;
+  background: #1e293b;
 }
 
 /* =========================
@@ -942,9 +931,7 @@ button:disabled {
   border: 1px solid #e5e5e5;
 }
 
-/* =========================
-   Chart Upload
-========================= */
+/* チャートアップロード */
 
 .chart-upload-area {
   min-height: 150px;
@@ -954,18 +941,18 @@ button:disabled {
   justify-content: center;
   gap: 7px;
   padding: 24px;
-  border: 2px dashed #d8d8d8;
+  border: 2px dashed #334155;
   border-radius: 14px;
-  background: #fafafa;
-  color: #777;
+  background: #0f172a;
+  color: #94a3b8;
   text-align: center;
   cursor: pointer;
   transition: 0.2s;
 }
 
 .chart-upload-area:hover {
-  border-color: #aaa;
-  background: #f5f5f5;
+  background: #1e293b;
+  border-color: #475569;
 }
 
 .chart-upload-area input {
@@ -979,20 +966,20 @@ button:disabled {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #eee;
-  color: #555;
+  background: #1e293b;
+  color: #94a3b8;
   font-size: 24px;
   font-weight: 300;
 }
 
 .chart-upload-area strong {
-  color: #333;
+  color: #e2e8f0;
   font-size: 14px;
 }
 
 .chart-upload-area span:last-child {
   font-size: 12px;
-  color: #999;
+  color: #64748b;
 }
 
 .chart-preview {
@@ -1006,9 +993,9 @@ button:disabled {
   max-width: 500px;
   max-height: 360px;
   object-fit: contain;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #334155;
   border-radius: 12px;
-  background: #f5f5f5;
+  background: #0f172a;
 }
 
 .chart-remove-button {
@@ -1035,29 +1022,29 @@ button:disabled {
   gap: 12px;
   margin-top: 30px;
   padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #1e293b;
 }
 
 .form-cancel-button {
   min-width: 120px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
 }
 
 .form-cancel-button:hover {
-  background: #e5e7eb;
+  background: #334155;
 }
 
 .form-save-button {
   min-width: 180px;
-  background: #111827;
+  background: #2563eb;
   color: white;
   font-weight: 700;
 }
 
 .form-save-button:hover {
-  background: #374151;
+  background: #1d4ed8;
 }
 
 .form-save-button:disabled {
@@ -1085,6 +1072,7 @@ button:disabled {
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
+  color: #f8fafc;
 }
 
 /* ヘッダー */
@@ -1103,11 +1091,12 @@ button:disabled {
   margin: 0 0 4px;
   font-size: 12px;
   letter-spacing: 1.5px;
-  color: #888;
+  color: #64748b;
 }
 
 .trade-detail-header h2 {
   margin: 0;
+  color: #f8fafc;
 }
 
 /* 概要 */
@@ -1118,19 +1107,18 @@ button:disabled {
   gap: 20px;
   padding: 24px;
   margin-bottom: 20px;
-  background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .detail-summary h2 {
   margin: 8px 0 0;
   font-size: 28px;
+  color: #f8fafc;
 }
 
 .detail-label {
   margin: 0;
-  color: #777;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -1144,13 +1132,13 @@ button:disabled {
 }
 
 .detail-direction.buy {
-  background: #e8f7ee;
-  color: #16803c;
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
 }
 
 .detail-direction.sell {
-  background: #fdeaea;
-  color: #d63c3c;
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
 }
 
 /* 損益 */
@@ -1172,15 +1160,15 @@ button:disabled {
 }
 
 .detail-profit.win {
-  color: #16803c;
+  color: #4ade80;
 }
 
 .detail-profit.loss {
-  color: #d63c3c;
+  color: #f87171;
 }
 
 .detail-profit.draw {
-  color: #777;
+  color: #94a3b8;
 }
 
 /* AI分析ボタン */
@@ -1188,10 +1176,14 @@ button:disabled {
   width: 100%;
   margin-bottom: 20px;
   padding: 14px 20px;
-  background: #222;
+  background: #2563eb;
   color: white;
   font-size: 15px;
   font-weight: bold;
+}
+
+.detail-ai-button:hover {
+  background: #1d4ed8;
 }
 
 .detail-ai-button:disabled {
@@ -1203,20 +1195,22 @@ button:disabled {
 .detail-section {
   margin-bottom: 20px;
   padding: 24px;
-  background: white;
+  background: #111827;
+  border: 1px solid #1e293b;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .detail-section-header {
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #1e293b;
 }
 
 .detail-section-header h3 {
   margin: 0;
   font-size: 18px;
+  color: #f8fafc;
 }
 
 /* 情報グリッド */
@@ -1232,16 +1226,17 @@ button:disabled {
   align-items: center;
   gap: 15px;
   padding: 14px;
-  background: #f7f7f7;
+  background: #0f172a;
   border-radius: 10px;
 }
 
 .detail-item span {
-  color: #777;
+  color: #64748b;
   font-size: 13px;
 }
 
 .detail-item strong {
+  color: #e2e8f0;
   font-size: 15px;
   text-align: right;
 }
@@ -1263,14 +1258,12 @@ button:disabled {
 /* 根拠 */
 .detail-reason {
   padding: 16px;
-  background: #f7f7f7;
   border-radius: 10px;
 }
 
 .detail-reason span {
   display: block;
   margin-bottom: 8px;
-  color: #777;
   font-size: 13px;
 }
 
@@ -1279,12 +1272,16 @@ button:disabled {
   line-height: 1.7;
 }
 
-/* 編集ボタン */
+/* 編集 */
 .detail-edit-button {
   padding: 9px 18px;
-  background: white;
-  border: 1px solid #ddd;
-  color: #333;
+  background: #111827;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.detail-edit-button:hover {
+  background: #1e293b;
 }
 
 .trade-detail-actions {
@@ -1296,19 +1293,24 @@ button:disabled {
 
 .detail-back-button {
   background: transparent;
-  color: #555;
+  color: #94a3b8;
   padding: 9px 14px;
+}
+
+.detail-back-button:hover {
+  background: #1e293b;
+  color: #f8fafc;
 }
 
 .detail-delete-button {
   margin-left: auto;
-  background: #fff;
-  border: 1px solid #e5bcbc;
-  color: #d63c3c;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #f87171;
 }
 
 .detail-delete-button:hover {
-  background: #fff5f5;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* =========================
@@ -1323,21 +1325,28 @@ button:disabled {
 }
 
 .analysis-card {
-  background: white;
   padding: 20px;
-  border: 1px solid #e5e7eb;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: #111827;
+  border: 1px solid #1e293b;
+  color: #f8fafc;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .analysis-card h3 {
   margin-bottom: 12px;
+  color: #f8fafc;
+}
+
+.analysis-card p {
+  color: #94a3b8;
 }
 
 .analysis-rate {
   margin: 10px 0;
   font-size: 28px;
   font-weight: 700;
+  color: #f8fafc;
 }
 
 /* =========================
@@ -1347,10 +1356,8 @@ button:disabled {
 .ai-analysis {
   margin-top: 30px;
   padding: 24px;
-  background: white;
-  border: 1px solid #e5e7eb;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  color: #e2e8f0;
 }
 
 .ai-analysis h2 {
@@ -1368,8 +1375,8 @@ button:disabled {
   margin-top: 20px;
   padding: 18px;
   border-radius: 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #0f172a;
+  border: 1px solid #1e293b;
 }
 
 .ai-section h3 {
@@ -1379,6 +1386,7 @@ button:disabled {
 .ai-section li {
   margin-bottom: 8px;
   line-height: 1.6;
+  color: #cbd5e1;
 }
 
 /* =========================
@@ -1445,10 +1453,6 @@ button:disabled {
 
   .trade-card-actions {
     flex-direction: column;
-  }
-
-  .trade-card-actions button {
-    width: 100%;
   }
 
   .trade-form {
@@ -1597,12 +1601,16 @@ button:disabled {
   }
 
   .trade-form-header {
+    width: 100%;
+    min-width: 0;
     gap: 12px;
     margin-bottom: 24px;
   }
 
   .trade-form-header h2 {
     font-size: 22px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .form-section {
@@ -1693,156 +1701,13 @@ body {
 
 .app-header h1,
 .trade-list-header h2,
-.trade-form-header h2,
-.trade-detail-header h2 {
+.trade-form-header h2 {
   color: #f8fafc;
 }
 
 .app-subtitle,
-.trade-form-subtitle,
-.trade-detail-subtitle {
+.trade-form-subtitle {
   color: #64748b;
-}
-
-/* ログアウト */
-
-.logout-button {
-  background: #111827;
-  color: #f8fafc;
-  border-color: #334155;
-}
-
-.logout-button:hover {
-  background: #1e293b;
-}
-
-/* ダッシュボード */
-
-.dashboard-card {
-  background: #111827;
-  border-color: #1e293b;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.dashboard-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.dashboard-card-title {
-  color: #94a3b8;
-}
-
-.dashboard-card-value {
-  color: #f8fafc;
-}
-
-/* 勝敗 */
-
-.dashboard-card.win {
-  border-left-color: #22c55e;
-}
-
-.dashboard-card.win .dashboard-card-value {
-  color: #22c55e;
-}
-
-.dashboard-card.loss {
-  border-left-color: #ef4444;
-}
-
-.dashboard-card.loss .dashboard-card-value {
-  color: #ef4444;
-}
-
-.dashboard-card.draw {
-  border-left-color: #64748b;
-}
-
-.dashboard-card.draw .dashboard-card-value {
-  color: #94a3b8;
-}
-
-/* 取引カード */
-
-.trade-card {
-  background: #111827;
-  border-color: #1e293b;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.trade-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.trade-card-date {
-  color: #64748b;
-}
-
-.trade-card h3 {
-  color: #f8fafc;
-}
-
-/* BUY / SELL */
-
-.direction-badge.buy {
-  background: rgba(37, 99, 235, 0.15);
-  color: #60a5fa;
-}
-
-.direction-badge.sell {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
-
-/* WIN / LOSS */
-
-.result-badge.win {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-}
-
-.result-badge.loss {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
-
-.result-badge.draw {
-  background: #1e293b;
-  color: #94a3b8;
-}
-
-/* 損益 */
-
-.trade-profit {
-  background: #0f172a;
-}
-
-.trade-profit.win strong {
-  color: #22c55e;
-}
-
-.trade-profit.loss strong {
-  color: #ef4444;
-}
-
-.trade-profit.draw strong {
-  color: #94a3b8;
-}
-
-/* 取引情報 */
-
-.trade-card-info div {
-  background: #0f172a;
-}
-
-.trade-card-info span,
-.trade-card-reason span {
-  color: #64748b;
-}
-
-.trade-card-info strong,
-.trade-card-reason p {
-  color: #e2e8f0;
 }
 
 /* 詳細 */
@@ -1853,14 +1718,6 @@ body {
   background: #111827;
   border: 1px solid #1e293b;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.detail-label {
-  color: #64748b;
-}
-
-.detail-summary h2 {
-  color: #f8fafc;
 }
 
 .detail-item,
@@ -1879,28 +1736,9 @@ body {
   color: #e2e8f0;
 }
 
-.detail-section-header {
-  border-bottom-color: #1e293b;
-}
-
-.detail-section-header h3,
 .ai-analysis h2,
 .ai-section h3 {
   color: #f8fafc;
-}
-
-/* AI */
-
-.ai-analysis {
-  color: #e2e8f0;
-}
-
-.ai-section {
-  border-color: #1e293b;
-}
-
-.ai-section li {
-  color: #cbd5e1;
 }
 
 /* ボタン */
@@ -1914,108 +1752,9 @@ button:hover {
   background: #334155;
 }
 
-/* 詳細ボタン */
-
-.trade-card-actions button {
-  background: #1e293b;
-}
-
-.trade-card-actions button:hover {
-  background: #334155;
-}
-
-/* 削除 */
-
-.trade-card-actions .delete-button,
-.detail-delete-button {
-  background: transparent;
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.trade-card-actions .delete-button:hover,
-.detail-delete-button:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* AI分析 */
-
-.detail-ai-button {
-  background: #2563eb;
-}
-
-.detail-ai-button:hover {
-  background: #1d4ed8;
-}
-
-/* =========================
-   勝率分析カード
-========================= */
-
-.analysis-card {
-  background: #111827;
-  border: 1px solid #1e293b;
-  color: #f8fafc;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.analysis-card h3 {
-  color: #f8fafc;
-}
-
-.analysis-card p {
-  color: #94a3b8;
-}
-
-.analysis-rate {
-  color: #f8fafc;
-}
-
 /* =========================
    取引一覧 ダークテーマ
 ========================= */
-
-.trade-list {
-  color: #f8fafc;
-}
-
-.trade-card {
-  background: #111827;
-  border-color: #1e293b;
-  color: #f8fafc;
-}
-
-.trade-card-date {
-  color: #64748b;
-}
-
-.trade-card h3 {
-  color: #f8fafc;
-}
-
-/* 損益エリア */
-
-.trade-profit {
-  background: #0f172a;
-}
-
-.trade-profit span {
-  color: #94a3b8;
-}
-
-/* 取引情報 */
-
-.trade-card-info div {
-  background: #0f172a;
-}
-
-.trade-card-info span {
-  color: #64748b;
-}
-
-.trade-card-info strong {
-  color: #e2e8f0;
-}
 
 /* 取引根拠 */
 
@@ -2023,127 +1762,14 @@ button:hover {
   color: #64748b;
 }
 
-.trade-card-reason p {
-  color: #e2e8f0;
-}
-
-/* 画像 */
-
-.trade-card-image {
-  border: 1px solid #1e293b;
-}
-
-/* ボタン */
-
-.trade-card-actions button {
-  background: #1e293b;
-  color: #f8fafc;
-}
-
-.trade-card-actions button:hover {
-  background: #334155;
-}
-
-/* 削除ボタン */
-
-.trade-card-actions .delete-button {
-  background: transparent;
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.trade-card-actions .delete-button:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
 /* =========================
    取引追加フォーム ダークテーマ
 ========================= */
-
-.trade-form {
-  color: #f8fafc;
-}
-
 /* フォームセクション */
 
 .form-section {
   background: #111827;
   border-color: #1e293b;
-}
-
-.form-section-header h3 {
-  color: #f8fafc;
-}
-
-.form-section-header span {
-  color: #64748b;
-}
-
-/* ラベル */
-
-.form-field label,
-.chart-image-field label {
-  color: #cbd5e1;
-}
-
-/* 入力欄 */
-
-.form-field input,
-.form-field select,
-.chart-image-field input[type="file"] {
-  background: #0f172a;
-  border-color: #334155;
-  color: #f8fafc;
-}
-
-.form-field input::placeholder {
-  color: #64748b;
-}
-
-.form-field input:focus,
-.form-field select:focus {
-  border-color: #64748b;
-  background: #111827;
-}
-
-/* 銘柄候補 */
-
-.symbol-field ul {
-  background: #111827;
-  border-color: #334155;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.symbol-field li {
-  color: #e2e8f0;
-}
-
-.symbol-field li:hover {
-  background: #1e293b;
-}
-
-/* BUY / SELL */
-
-.direction-button {
-  background: #0f172a;
-  border-color: #334155;
-  color: #94a3b8;
-}
-
-.direction-button:hover {
-  background: #1e293b;
-}
-
-.direction-button.buy.active {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: #22c55e;
-  color: #4ade80;
-}
-
-.direction-button.sell.active {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #ef4444;
-  color: #f87171;
 }
 
 /* TP / SL */
@@ -2164,63 +1790,6 @@ button:hover {
 .sl-field input:focus {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.05);
-}
-
-/* チャートアップロード */
-
-.chart-upload-area {
-  background: #0f172a;
-  border-color: #334155;
-  color: #94a3b8;
-}
-
-.chart-upload-area:hover {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-.chart-upload-icon {
-  background: #1e293b;
-  color: #94a3b8;
-}
-
-.chart-upload-area strong {
-  color: #e2e8f0;
-}
-
-.chart-upload-area span:last-child {
-  color: #64748b;
-}
-
-/* プレビュー */
-
-.chart-preview img {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-/* フォーム下部 */
-
-.trade-form-footer {
-  border-top-color: #1e293b;
-}
-
-.form-cancel-button {
-  background: #1e293b;
-  border-color: #334155;
-  color: #cbd5e1;
-}
-
-.form-cancel-button:hover {
-  background: #334155;
-}
-
-.form-save-button {
-  background: #2563eb;
-}
-
-.form-save-button:hover {
-  background: #1d4ed8;
 }
 
 /* =========================
@@ -2302,16 +1871,6 @@ img {
     max-width: 100%;
   }
 
-  .trade-form-header {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .trade-form-header h2 {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
   .trade-card {
     width: 100%;
     max-width: 100%;
@@ -2324,159 +1883,4 @@ img {
     max-width: 100%;
     height: auto;
   }
-}
-
-/* =========================
-   取引詳細 ダークテーマ
-========================= */
-
-.trade-detail {
-  color: #f8fafc;
-}
-
-/* ヘッダー */
-
-.trade-detail-subtitle {
-  color: #64748b;
-}
-
-.trade-detail-header h2 {
-  color: #f8fafc;
-}
-
-/* 戻る */
-
-.detail-back-button {
-  color: #94a3b8;
-}
-
-.detail-back-button:hover {
-  background: #1e293b;
-  color: #f8fafc;
-}
-
-/* 編集 */
-
-.detail-edit-button {
-  background: #111827;
-  border-color: #334155;
-  color: #e2e8f0;
-}
-
-.detail-edit-button:hover {
-  background: #1e293b;
-}
-
-/* 削除 */
-
-.detail-delete-button {
-  background: transparent;
-  border-color: rgba(239, 68, 68, 0.45);
-  color: #f87171;
-}
-
-.detail-delete-button:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* 取引概要 */
-
-.detail-summary {
-  background: #111827;
-  border: 1px solid #1e293b;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.detail-label {
-  color: #64748b;
-}
-
-.detail-summary h2 {
-  color: #f8fafc;
-}
-
-/* BUY / SELL */
-
-.detail-direction.buy {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-}
-
-.detail-direction.sell {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-}
-
-/* 損益 */
-
-.detail-profit.win {
-  color: #4ade80;
-}
-
-.detail-profit.loss {
-  color: #f87171;
-}
-
-.detail-profit.draw {
-  color: #94a3b8;
-}
-
-/* AI分析ボタン */
-
-.detail-ai-button {
-  background: #2563eb;
-}
-
-.detail-ai-button:hover {
-  background: #1d4ed8;
-}
-
-/* 詳細セクション */
-
-.detail-section {
-  background: #111827;
-  border: 1px solid #1e293b;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.detail-section-header {
-  border-bottom-color: #1e293b;
-}
-
-.detail-section-header h3 {
-  color: #f8fafc;
-}
-
-/* 詳細項目 */
-
-.detail-item {
-  background: #0f172a;
-}
-
-.detail-item span {
-  color: #64748b;
-}
-
-.detail-item strong {
-  color: #e2e8f0;
-}
-
-/* チャート */
-
-.detail-chart img {
-  border-radius: 10px;
-}
-
-/* 取引根拠 */
-
-.detail-reason {
-  background: #0f172a;
-}
-
-.detail-reason span {
-  color: #64748b;
-}
-
-.detail-reason p {
-  color: #e2e8f0;
 }
