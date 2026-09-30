@@ -199,8 +199,8 @@ function TradeForm({
 
       {/* ヘッダー */}
       <div className="trade-form-header">
-        <button className="back-button" onClick={onBack}>
-          ← 戻る
+        <button type="button" className="back-button" onClick={onBack}>
+          {editTrade ? "← 戻る" : "× 閉じる"}
         </button>
 
         <div>
