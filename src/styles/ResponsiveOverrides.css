@@ -1,4 +1,4 @@
-/* Home dashboard: phone layout */
+/* ホーム画面のスマートフォン表示 */
 @media (max-width: 700px) {
   .app-header > div {
     min-width: 0;
@@ -63,7 +63,7 @@
   }
 }
 
-/* Keep the trade form title visible beside its close control on phones. */
+/* スマートフォンでフォーム見出しと閉じるボタンを並べる */
 @media (max-width: 700px) {
   .trade-form-header {
     display: flex;
@@ -142,7 +142,7 @@
   }
 }
 
-/* Give each dashboard and form section room to breathe. */
+/* ダッシュボードとフォームのセクション間隔 */
 .dashboard {
   margin-bottom: 52px;
 }
@@ -201,7 +201,7 @@
   }
 }
 
-/* Recent trades: clearer type scale and card hierarchy */
+/* 最近の取引の文字サイズと情報の優先順位 */
 .trade-list-header h2 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
 .trade-result-count { font-size: 13px; }
 .trade-card { padding: 22px; }
@@ -255,7 +255,7 @@
   .trade-result-count { padding: 6px 11px; font-size: 14px; }
 }
 
-/* Trade detail header: title first, controls grouped to the right. */
+/* 取引詳細ヘッダーのタイトルと操作ボタン */
 .trade-detail-header { align-items: center; gap: 20px; margin-bottom: 28px; }
 .trade-detail-header > div:last-child { order: 1; min-width: 0; flex: 1 1 auto; }
 .trade-detail-header > .trade-detail-actions { order: 2; flex: 0 0 auto; justify-content: flex-end; gap: 8px; margin: 0; }

@@ -1,6 +1,4 @@
-/*
-      Trade Form
-========================= */
+/* 取引フォーム */
 
 .trade-form {
   max-width: 900px;
@@ -34,9 +32,7 @@
   padding: 10px 14px;
 }
 
-/* =========================
-   Direction Buttons
-========================= */
+/* 売買方向ボタン */
 
 .direction-buttons {
   display: grid;
@@ -72,9 +68,7 @@
   color: #f87171;
 }
 
-/* =========================
-   TP / SL
-========================= */
+/* 利確・損切 */
 
 .tp-sl-row {
   grid-column: 1 / -1;
@@ -211,9 +205,7 @@
   background: #1e293b;
 }
 
-/* =========================
-   Trade Search
-========================= */
+/* 取引検索 */
 
 .trade-search {
   margin-bottom: 28px;
@@ -357,9 +349,7 @@
   cursor: pointer;
 }
 
-/* =========================
-   Trade Filter Buttons
-========================= */
+/* 検索条件ボタン */
 
 .filter-buttons {
   display: grid;
@@ -546,9 +536,7 @@
   background: #f5f5f5;
 }
 
-/* =========================
-   Form Footer
-========================= */
+/* フォーム下部の操作 */
 
 .trade-form-footer {
   display: flex;

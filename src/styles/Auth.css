@@ -1,4 +1,4 @@
-/* Centered authentication experience */
+/* ログイン・新規登録画面 */
 .auth-page {
   display: grid;
   min-height: calc(100svh - 108px);

@@ -197,7 +197,6 @@ function TradeForm({
   return (
     <div className="trade-form">
 
-      {/* ヘッダー */}
       <div className="trade-form-header">
         <button type="button" className="back-button" onClick={onBack}>
           {editTrade ? "← 戻る" : "× 閉じる"}
@@ -214,7 +213,6 @@ function TradeForm({
         </div>
       </div>
 
-      {/* 基本情報 */}
       <section className="form-section">
         <div className="form-section-header">
           <h3>基本情報</h3>
@@ -308,7 +306,6 @@ function TradeForm({
         </div>
       </section>
 
-      {/* 価格・取引 */}
       <section className="form-section">
         <div className="form-section-header">
           <h3>価格・取引情報</h3>
@@ -377,7 +374,6 @@ function TradeForm({
         </div>
       </section>
 
-      {/* 時間 */}
       <section className="form-section">
         <div className="form-section-header">
           <h3>取引時間</h3>
@@ -409,7 +405,6 @@ function TradeForm({
         </div>
       </section>
 
-      {/* 分析 */}
       <section className="form-section">
         <div className="form-section-header">
           <h3>分析</h3>
@@ -476,7 +471,6 @@ function TradeForm({
         </div>
       </section>
 
-      {/* 保存 */}
       <div className="trade-form-footer">
 
         <button

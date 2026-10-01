@@ -424,7 +424,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 銘柄検索 */}
                 <div className="trade-search-keyword">
                   <label>銘柄</label>
 
@@ -440,9 +439,7 @@ function App() {
                   </div>
                 </div>
 
-                {/* フィルター */}
                 <div className="trade-search-filters">
-                  {/* 方向 */}
                   <div className="trade-filter-group">
                     <label>方向</label>
 
@@ -473,7 +470,6 @@ function App() {
                     </div>
                   </div>
 
-                  {/* 結果 */}
                   <div className="trade-filter-group">
                     <label>結果</label>
 
@@ -513,7 +509,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 期間 */}
                 <div className="trade-search-date">
                   <label>期間</label>
 

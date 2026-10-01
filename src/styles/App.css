@@ -1,6 +1,4 @@
-/* =========================
-   Base
-========================= */
+/* 基本スタイル */
 
 * {
   box-sizing: border-box;
@@ -27,9 +25,7 @@ p {
   margin-top: 0;
 }
 
-/* =========================
-   Buttons
-========================= */
+/* 共通ボタン */
 
 button {
   padding: 10px 18px;
@@ -57,9 +53,7 @@ button:disabled {
   transform: none;
 }
 
-/* =========================
-   App Header
-========================= */
+/* ホーム画面のヘッダー */
 
 .app-header {
   display: flex;
@@ -96,9 +90,7 @@ button:disabled {
   background: #1e293b;
 }
 
-/* =========================
-   Dashboard
-========================= */
+/* ダッシュボード */
 
 .dashboard {
   display: flex;
@@ -150,7 +142,6 @@ button:disabled {
   letter-spacing: -0.5px;
 }
 
-/* Dashboard result colors */
 .dashboard-card.win {
   border-left: 4px solid #22c55e;
 }
@@ -175,9 +166,7 @@ button:disabled {
   color: #94a3b8;
 }
 
-/* =========================
-   Trade List
-========================= */
+/* 取引一覧 */
 
 .trade-list {
   list-style: none;
@@ -187,9 +176,7 @@ button:disabled {
   color: #f8fafc;
 }
 
-/* =========================
-   取引カード
-========================= */
+/* 取引カード */
 
 .trade-card {
   background: #111827;
@@ -204,16 +191,10 @@ button:disabled {
     box-shadow 0.2s;
 }
 
-/* 取引カード ホバー */
-
 .trade-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
-
-/* =========================
-   Trade Card Header
-========================= */
 
 .trade-card-header {
   display: flex;
@@ -222,15 +203,11 @@ button:disabled {
   gap: 16px;
 }
 
-/* 取引カードの日付 */
-
 .trade-card-date {
   margin: 0 0 6px;
   color: #64748b;
   font-size: 13px;
 }
-
-/* 取引カード銘柄名 */
 
 .trade-card h3 {
   margin: 0;
@@ -276,9 +253,7 @@ button:disabled {
   color: #94a3b8;
 }
 
-/* =========================
-   取引損益
-========================= */
+/* 取引損益 */
 
 .trade-profit {
   display: flex;
@@ -355,10 +330,6 @@ button:disabled {
   color: #e2e8f0;
 }
 
-/* =========================
-   取引カード画像
-========================= */
-
 .trade-card-image {
   display: block;
   width: 100%;
@@ -369,10 +340,6 @@ button:disabled {
   border: 1px solid #1e293b;
   border-radius: 10px;
 }
-
-/* =========================
-   取引カードボタン
-========================= */
 
 .trade-card-actions {
   display: flex;
@@ -387,13 +354,9 @@ button:disabled {
   color: #f8fafc;
 }
 
-/* 詳細ボタン */
-
 .trade-card-actions .delete-button:hover {
   background: rgba(239, 68, 68, 0.1);
 }
-
-/* 削除ボタン */
 
 .trade-card-actions .delete-button,
 .detail-delete-button {
@@ -402,9 +365,7 @@ button:disabled {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
-/* =========================
-   Trade Badges
-========================= */
+/* 売買方向と結果のバッジ */
 
 .trade-direction,
 .trade-result {
@@ -441,9 +402,7 @@ button:disabled {
   color: #6b7280;
 }
 
-/* =========================
-   Trade Profit
-========================= */
+/* 取引損益 */
 
 .trade-card-profit {
   display: flex;
@@ -463,5 +422,3 @@ button:disabled {
 .trade-card-profit .trade-profit {
   font-size: 24px;
 }
-
-/* =========================

@@ -139,13 +139,11 @@
     margin: 0;
   }
 
-  /* 戻るボタン */
   .back-button {
     flex-shrink: 0;
     white-space: nowrap;
   }
 
-  /* 取引カード */
   .trade-card img {
     width: 100%;
     max-width: 280px;
@@ -153,13 +151,11 @@
     display: block;
   }
 
-  /* 取引カードのボタン */
   .trade-card button {
     width: 100%;
     margin-top: 8px;
   }
 
-  /* 追加・AI分析ボタン */
   .trade-list + button,
   .trade-list + button + button {
     width: 100%;

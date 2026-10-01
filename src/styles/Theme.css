@@ -1,4 +1,4 @@
-/* Refined dark trading workspace */
+/* ダークテーマ共通スタイル */
 :root {
   --surface: #101925;
   --surface-raised: #131f2d;
@@ -243,7 +243,7 @@ body {
   color: #fda4af;
 }
 
-/* Main actions */
+/* 主要操作ボタン */
 button {
   border-radius: 8px;
   transition:
@@ -342,9 +342,7 @@ button {
   }
 }
 
-/* =========================
-   Small Mobile
-========================= */
+/* 小型スマートフォン表示 */
 
 @media (max-width: 480px) {
   .app-header h1 {
@@ -385,9 +383,7 @@ button {
   }
 }
 
-/* =========================
-   ダークデザイン
-========================= */
+/* ダークテーマ */
 
 body {
   background: #0b1220;
@@ -397,8 +393,6 @@ body {
 #root {
   background: #0b1220;
 }
-
-/* ヘッダー */
 
 .app-header h1,
 .trade-list-header h2,
@@ -410,8 +404,6 @@ body {
 .trade-form-subtitle {
   color: #64748b;
 }
-
-/* 詳細 */
 
 .detail-summary,
 .detail-section,
@@ -442,8 +434,6 @@ body {
   color: #f8fafc;
 }
 
-/* ボタン */
-
 button {
   background: #1e293b;
   color: #f8fafc;
@@ -453,27 +443,18 @@ button:hover {
   background: #334155;
 }
 
-/* =========================
-   取引一覧 ダークテーマ
-========================= */
-
-/* 取引根拠 */
+/* 取引一覧のダークテーマ */
 
 .trade-card-reason span {
   color: #64748b;
 }
 
-/* =========================
-   取引追加フォーム ダークテーマ
-========================= */
-/* フォームセクション */
+/* 取引フォームのダークテーマ */
 
 .form-section {
   background: #111827;
   border-color: #1e293b;
 }
-
-/* TP / SL */
 
 .tp-field label {
   color: #4ade80;
@@ -493,9 +474,7 @@ button:hover {
   background: rgba(239, 68, 68, 0.05);
 }
 
-/* =========================
-   レスポンシブ横幅修正
-========================= */
+/* レスポンシブ横幅修正 */
 
 html,
 body {
@@ -510,7 +489,6 @@ body {
   min-width: 0;
 }
 
-/* 各主要コンテンツが画面幅を超えないようにする */
 .trade-form,
 .trade-detail,
 .trade-search,
@@ -521,7 +499,6 @@ body {
   min-width: 0;
 }
 
-/* カードが横にはみ出さないようにする */
 .trade-card,
 .dashboard-card,
 .analysis-card,
@@ -532,7 +509,6 @@ body {
   min-width: 0;
 }
 
-/* フォームの中身も画面幅に合わせる */
 .form-grid,
 .tp-sl-row,
 .trade-card-info,
@@ -541,7 +517,6 @@ body {
   min-width: 0;
 }
 
-/* 入力・画像が親要素からはみ出さないようにする */
 input,
 select,
 textarea,

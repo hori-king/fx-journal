@@ -27,7 +27,6 @@ function TradeDetail({
   return (
     <div className="trade-detail">
 
-      {/* ヘッダー */}
       <div className="trade-detail-header">
         <div className="trade-detail-actions">
           <button
@@ -62,7 +61,6 @@ function TradeDetail({
 
       </div>
 
-      {/* 取引概要 */}
       <section className="detail-summary">
 
         <div>
@@ -89,7 +87,6 @@ function TradeDetail({
 
       </section>
 
-      {/* AI分析ボタン */}
       <button
         className="detail-ai-button"
         onClick={() => onAnalyze(trade)}
@@ -98,7 +95,6 @@ function TradeDetail({
         {isAnalyzing ? "AI分析中..." : "🤖 この取引をAI分析"}
       </button>
 
-      {/* チャート画像 */}
       {trade.chartImage && (
         <section className="detail-section">
 
@@ -116,7 +112,6 @@ function TradeDetail({
         </section>
       )}
 
-      {/* 価格情報 */}
       <section className="detail-section">
 
         <div className="detail-section-header">
@@ -159,7 +154,6 @@ function TradeDetail({
 
       </section>
 
-      {/* 取引情報 */}
       <section className="detail-section">
 
         <div className="detail-section-header">
@@ -202,7 +196,6 @@ function TradeDetail({
 
       </section>
 
-      {/* 分析 */}
       <section className="detail-section">
 
         <div className="detail-section-header">
@@ -216,7 +209,6 @@ function TradeDetail({
 
       </section>
 
-      {/* AI分析 */}
       {singleAiAnalysis && (
         <div className="ai-analysis">
 
