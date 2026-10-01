@@ -2178,3 +2178,23 @@ body, #root { background-color: #080d16; color: #dce6f0; }
   .trade-form-header .back-button { padding: 8px 9px; font-size: 12px; }
   .trade-form-header h2 { font-size: 20px; }
 }
+
+.trade-form-header > div { order: 1; }
+.trade-form-header .back-button { order: 2; margin-left: auto; }
+
+.dashboard-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dashboard-actions button { width: auto; margin: 0; }
+.dashboard-actions button:first-child { background: #0e7490; color: #ecfeff; }
+.dashboard-actions button:first-child:hover { background: #0891b2; }
+.dashboard-actions button:last-child { border: 1px solid #29394a; background: #121d29; color: #c7d4e0; }
+.dashboard-actions button:last-child:hover { background: #1a2a39; }
+
+@media (max-width: 700px) {
+  .dashboard-actions button { width: auto; }
+}

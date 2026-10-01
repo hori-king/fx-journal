@@ -581,15 +581,17 @@ function App() {
                     ))}
                 </ul>
               )}
-              <button onClick={() => setShowForm((current) => !current)}>
-                ＋ 取引を追加
-              </button>
+              <div className="dashboard-actions">
+                <button onClick={() => setShowForm((current) => !current)}>
+                  ＋ 取引を追加
+                </button>
 
-              <button
-                onClick={testAIAnalysis}
-                disabled={isAnalyzing}>
-                {isAnalyzing ? "AI分析中" : "AI分析を実行"}
-              </button>
+                <button
+                  onClick={testAIAnalysis}
+                  disabled={isAnalyzing}>
+                  {isAnalyzing ? "AI分析中" : "AI分析を実行"}
+                </button>
+              </div>
 
               {aiError && (
                 <p className="ai-error">
