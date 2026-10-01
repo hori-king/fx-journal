@@ -2198,3 +2198,30 @@ body, #root { background-color: #080d16; color: #dce6f0; }
 @media (max-width: 700px) {
   .dashboard-actions button { width: auto; }
 }
+
+/* Give each dashboard and form section room to breathe. */
+.dashboard { margin-bottom: 52px; }
+.dashboard + h2,
+.analysis-list + h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+.analysis-list { margin-bottom: 50px; }
+.trade-search { margin-top: 4px; margin-bottom: 44px; }
+.trade-list-header { margin-top: 42px; margin-bottom: 18px; }
+.trade-list { gap: 18px; }
+.form-section { margin-bottom: 30px; }
+.trade-card-reason { margin-bottom: 16px; }
+
+@media (max-width: 700px) {
+  .dashboard { margin-bottom: 40px; }
+  .analysis-list { margin-bottom: 38px; }
+  .dashboard + h2,
+  .analysis-list + h2 { margin-bottom: 15px; font-size: 16px; }
+  .trade-search { margin-bottom: 34px; }
+  .trade-list-header { margin-top: 34px; margin-bottom: 14px; }
+  .trade-list { gap: 14px; }
+  .form-section { margin-bottom: 22px; }
+}
