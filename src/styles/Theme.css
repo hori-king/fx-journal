@@ -1,0 +1,587 @@
+/* Refined dark trading workspace */
+:root {
+  --surface: #101925;
+  --surface-raised: #131f2d;
+  --surface-inset: #0b131e;
+  --line: #202e3d;
+  --muted: #8b9bad;
+  --accent: #38bdf8;
+}
+
+body {
+  color: #dce6f0;
+}
+#root {
+  max-width: 1320px;
+  padding-top: 36px;
+}
+.app-header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.app-header h1 {
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+.app-subtitle,
+.trade-search-subtitle,
+.trade-form-subtitle {
+  color: #6f8295;
+}
+.logout-button {
+  background: transparent;
+  border-color: #2a3a4b;
+  color: #b6c5d3;
+}
+.logout-button:hover {
+  background: #182534;
+}
+
+.dashboard {
+  gap: 12px;
+  margin-bottom: 42px;
+}
+.dashboard-main,
+.dashboard-result {
+  gap: 12px;
+}
+.dashboard-card,
+.analysis-card,
+.trade-card,
+.detail-section,
+.detail-summary,
+.ai-analysis {
+  background: linear-gradient(145deg, #121d29, #0f1823);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+}
+.dashboard-card {
+  padding: 19px 20px;
+}
+.dashboard-card:hover,
+.trade-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+.dashboard-card-title {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.dashboard-card-value {
+  font-size: clamp(22px, 2.4vw, 29px);
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-card.win {
+  border-left: 3px solid #34d399;
+}
+.dashboard-card.win .dashboard-card-value {
+  color: #34d399;
+}
+.dashboard-card.loss {
+  border-left: 3px solid #fb7185;
+}
+.dashboard-card.loss .dashboard-card-value {
+  color: #fb7185;
+}
+.dashboard-card.draw {
+  border-left: 3px solid #64748b;
+}
+.dashboard-card.draw .dashboard-card-value {
+  color: #a8b6c5;
+}
+
+.dashboard + h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.analysis-list {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 34px;
+}
+.analysis-card {
+  padding: 18px;
+}
+.analysis-card h3 {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.analysis-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.analysis-rate {
+  color: #edf4fb !important;
+  font-size: 25px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.trade-search {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #101925;
+}
+.trade-search-header {
+  margin-bottom: 18px;
+}
+.trade-search-header h2 {
+  color: #edf4fb;
+  font-size: 18px;
+}
+.trade-search-keyword label,
+.trade-filter-group label,
+.trade-search-date > label {
+  color: #9aaabd;
+  font-size: 12px;
+}
+.trade-search-input,
+.trade-date-inputs input,
+.filter-buttons button {
+  border-color: #29394a;
+  background: var(--surface-inset);
+  color: #dce6f0;
+}
+.trade-search-input input {
+  color: #edf4fb;
+}
+.trade-search-input input::placeholder {
+  color: #687a8e;
+}
+.filter-buttons button {
+  height: 38px;
+}
+.filter-buttons button:hover {
+  background: #172433;
+}
+.filter-buttons button.active {
+  background: #203244;
+  border-color: #36536c;
+  color: #eaf6ff;
+}
+.filter-buttons button.active.buy,
+.filter-buttons button.active.win {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(52, 211, 153, 0.42);
+  color: #6ee7b7;
+}
+.filter-buttons button.active.sell,
+.filter-buttons button.active.loss {
+  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(251, 113, 133, 0.38);
+  color: #fda4af;
+}
+.filter-buttons button.active.draw {
+  background: #253242;
+  border-color: #46566a;
+  color: #c0ccd8;
+}
+.trade-search-reset {
+  border-color: #29394a;
+  background: transparent;
+  color: #91a1b2;
+}
+.trade-search-reset:hover {
+  background: #172433;
+  color: #e1ebf5;
+}
+.trade-list-header {
+  margin-top: 36px;
+}
+.trade-list-header h2 {
+  color: #edf4fb;
+  font-size: 19px;
+}
+.trade-result-count {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: #101925;
+  color: #a8b6c5;
+}
+.trade-list {
+  gap: 12px;
+}
+.trade-card {
+  padding: 20px;
+}
+.trade-card h3 {
+  font-size: 20px;
+}
+.trade-profit,
+.trade-card-info div,
+.detail-item,
+.detail-reason,
+.ai-section {
+  background: var(--surface-inset);
+}
+.trade-card-info div {
+  border: 1px solid #1b2937;
+}
+.trade-card-info span,
+.trade-card-reason span {
+  color: #8496a9;
+}
+.trade-card-actions button {
+  background: #1a2a39;
+  color: #dce6f0;
+}
+.trade-card-actions button:hover {
+  background: #263b4e;
+}
+.detail-section {
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+}
+.ai-error {
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  background: rgba(127, 29, 29, 0.18);
+  color: #fda4af;
+}
+
+/* Main actions */
+button {
+  border-radius: 8px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+.trade-list ~ button {
+  margin: 4px 8px 0 0;
+}
+.trade-list ~ button:first-of-type {
+  background: #0e7490;
+  color: #ecfeff;
+}
+.trade-list ~ button:first-of-type:hover {
+  background: #0891b2;
+}
+.trade-list ~ button:nth-of-type(2) {
+  border: 1px solid #29394a;
+  background: #121d29;
+  color: #c7d4e0;
+}
+.trade-list ~ button:nth-of-type(2):hover {
+  background: #1a2a39;
+}
+
+@media (max-width: 700px) {
+  #root {
+    padding: 24px 16px 48px;
+  }
+  .app-header {
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 18px;
+  }
+  .app-header h1 {
+    font-size: 24px;
+  }
+  .dashboard-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-result {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard-card {
+    padding: 15px 12px;
+  }
+  .dashboard-card-title {
+    font-size: 11px;
+  }
+  .dashboard-card-value {
+    font-size: 21px;
+  }
+  .analysis-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .analysis-card {
+    padding: 14px;
+  }
+  .trade-search {
+    padding: 18px;
+  }
+  .trade-search-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .trade-card-actions {
+    flex-direction: row;
+  }
+  .trade-card-actions button {
+    width: auto;
+    flex: 1;
+  }
+  .trade-list ~ button {
+    width: 100%;
+    margin: 6px 0 0;
+  }
+}
+
+@media (max-width: 400px) {
+  #root {
+    padding-inline: 12px;
+  }
+  .dashboard-result {
+    gap: 8px;
+  }
+  .dashboard-card-value {
+    font-size: 19px;
+  }
+  .analysis-list {
+    grid-template-columns: 1fr;
+  }
+  .trade-date-inputs {
+    gap: 5px;
+  }
+}
+
+/* =========================
+   Small Mobile
+========================= */
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 22px;
+  }
+
+  .logout-button {
+    width: auto;
+  }
+
+  .dashboard-main {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-result {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .analysis-list {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-card {
+    padding: 14px;
+  }
+
+  .dashboard-card-value {
+    font-size: 22px;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .logout-button,
+  .trade-card-actions button {
+    width: 100%;
+  }
+}
+
+/* =========================
+   ダークデザイン
+========================= */
+
+body {
+  background: #0b1220;
+  color: #f8fafc;
+}
+
+#root {
+  background: #0b1220;
+}
+
+/* ヘッダー */
+
+.app-header h1,
+.trade-list-header h2,
+.trade-form-header h2 {
+  color: #f8fafc;
+}
+
+.app-subtitle,
+.trade-form-subtitle {
+  color: #64748b;
+}
+
+/* 詳細 */
+
+.detail-summary,
+.detail-section,
+.ai-analysis {
+  background: #111827;
+  border: 1px solid #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.detail-item,
+.detail-reason,
+.ai-section {
+  background: #0f172a;
+}
+
+.detail-item span,
+.detail-reason span {
+  color: #64748b;
+}
+
+.detail-item strong,
+.detail-reason p {
+  color: #e2e8f0;
+}
+
+.ai-analysis h2,
+.ai-section h3 {
+  color: #f8fafc;
+}
+
+/* ボタン */
+
+button {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+button:hover {
+  background: #334155;
+}
+
+/* =========================
+   取引一覧 ダークテーマ
+========================= */
+
+/* 取引根拠 */
+
+.trade-card-reason span {
+  color: #64748b;
+}
+
+/* =========================
+   取引追加フォーム ダークテーマ
+========================= */
+/* フォームセクション */
+
+.form-section {
+  background: #111827;
+  border-color: #1e293b;
+}
+
+/* TP / SL */
+
+.tp-field label {
+  color: #4ade80;
+}
+
+.sl-field label {
+  color: #f87171;
+}
+
+.tp-field input:focus {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.sl-field input:focus {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* =========================
+   レスポンシブ横幅修正
+========================= */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  max-width: 1200px;
+  min-width: 0;
+}
+
+/* 各主要コンテンツが画面幅を超えないようにする */
+.trade-form,
+.trade-detail,
+.trade-search,
+.trade-list,
+.dashboard,
+.analysis-list {
+  width: 100%;
+  min-width: 0;
+}
+
+/* カードが横にはみ出さないようにする */
+.trade-card,
+.dashboard-card,
+.analysis-card,
+.form-section,
+.detail-section,
+.detail-summary,
+.ai-analysis {
+  min-width: 0;
+}
+
+/* フォームの中身も画面幅に合わせる */
+.form-grid,
+.tp-sl-row,
+.trade-card-info,
+.detail-grid {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 入力・画像が親要素からはみ出さないようにする */
+input,
+select,
+textarea,
+img {
+  max-width: 100%;
+}
+
+/* スマホ */
+@media (max-width: 700px) {
+  #root {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 10px 32px;
+  }
+
+  .trade-form,
+  .trade-detail {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .form-section,
+  .detail-section,
+  .trade-search {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .trade-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .trade-card-image,
+  .chart-preview img,
+  .detail-chart img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+}

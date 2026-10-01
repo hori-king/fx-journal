@@ -1,0 +1,234 @@
+@media (max-width: 768px) {
+  #root {
+    padding: 20px 12px 40px;
+  }
+
+  .app-header {
+    align-items: flex-start;
+  }
+
+  .app-header h1 {
+    font-size: 24px;
+  }
+
+  .dashboard-main {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-result {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dashboard-card {
+    padding: 16px;
+  }
+
+  .dashboard-card-value {
+    font-size: 24px;
+  }
+
+  .trade-card {
+    padding: 16px;
+  }
+
+  .trade-card-header {
+    flex-direction: column;
+  }
+
+  .trade-badges {
+    justify-content: flex-start;
+  }
+
+  .trade-card-info {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trade-card-actions {
+    flex-direction: column;
+  }
+
+  .trade-form {
+    padding: 18px;
+  }
+
+  .trade-form input,
+  .trade-form select {
+    max-width: 100%;
+  }
+
+  .symbol-field {
+    max-width: 100%;
+  }
+
+  .trade-detail {
+    padding: 20px 12px;
+  }
+
+  .trade-detail-header {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .trade-detail-header h2 {
+    font-size: 22px;
+  }
+
+  .detail-summary {
+    padding: 18px;
+  }
+
+  .detail-summary h2 {
+    font-size: 22px;
+  }
+
+  .detail-profit strong {
+    font-size: 21px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-section {
+    padding: 18px;
+  }
+
+  .detail-item {
+    padding: 12px;
+  }
+
+  .trade-detail-actions {
+    flex-wrap: wrap;
+  }
+
+  .detail-delete-button {
+    margin-left: 0;
+  }
+
+  .analysis-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .analysis-card {
+    padding: 16px;
+  }
+
+  .ai-analysis {
+    padding: 18px;
+  }
+
+  .trade-form-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .trade-form-header > div {
+    min-width: 0;
+  }
+
+  .trade-form-header h2 {
+    font-size: 22px;
+    margin: 4px 0 0;
+    white-space: nowrap;
+  }
+
+  .trade-form-subtitle {
+    font-size: 10px;
+    margin: 0;
+  }
+
+  /* 戻るボタン */
+  .back-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* 取引カード */
+  .trade-card img {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    display: block;
+  }
+
+  /* 取引カードのボタン */
+  .trade-card button {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* 追加・AI分析ボタン */
+  .trade-list + button,
+  .trade-list + button + button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+/* スマホ */
+
+@media (max-width: 700px) {
+  .trade-search {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .trade-search-filters {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .trade-date-inputs {
+    gap: 6px;
+  }
+
+  .trade-date-inputs input {
+    font-size: 13px;
+  }
+
+  .trade-form {
+    padding: 20px 0 32px;
+  }
+
+  .trade-form-header {
+    width: 100%;
+    min-width: 0;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .trade-form-header h2 {
+    font-size: 22px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .form-section {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-section-header {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .trade-form-footer {
+    flex-direction: column-reverse;
+  }
+
+  .form-cancel-button,
+  .form-save-button {
+    width: 100%;
+  }
+
+  .tp-sl-row {
+    grid-template-columns: 1fr;
+  }
+}
