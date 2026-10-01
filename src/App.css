@@ -2142,3 +2142,25 @@ body, #root { background-color: #080d16; color: #dce6f0; }
   .auth-card { padding: 28px 20px; }
   .auth-card::before { left: 20px; }
 }
+
+/* Home dashboard: phone layout */
+@media (max-width: 700px) {
+  .app-header > div { min-width: 0; flex: 1 1 auto; }
+  .app-header h1 { white-space: nowrap; font-size: 22px; }
+  .app-header .logout-button { width: auto; min-width: 0; flex: 0 0 auto; padding: 9px 12px; white-space: nowrap; }
+  .dashboard { gap: 10px; margin-bottom: 32px; }
+  .dashboard-main, .dashboard-result { min-width: 0; }
+  .dashboard-card { min-width: 0; padding: 14px 12px; }
+  .dashboard-card-value { overflow-wrap: anywhere; font-size: clamp(18px, 5vw, 22px); }
+  .analysis-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analysis-card { min-width: 0; overflow-wrap: anywhere; }
+}
+
+@media (max-width: 380px) {
+  .app-header { align-items: flex-start; }
+  .app-header h1 { font-size: 20px; }
+  .app-header .logout-button { padding: 8px 9px; font-size: 12px; }
+  .dashboard-result { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .dashboard-result .dashboard-card { padding: 12px 8px; }
+  .dashboard-result .dashboard-card-title { font-size: 10px; }
+}
