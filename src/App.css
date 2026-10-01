@@ -2164,3 +2164,17 @@ body, #root { background-color: #080d16; color: #dce6f0; }
   .dashboard-result .dashboard-card { padding: 12px 8px; }
   .dashboard-result .dashboard-card-title { font-size: 10px; }
 }
+
+/* Keep the trade form title visible beside its close control on phones. */
+@media (max-width: 700px) {
+  .trade-form-header { display: flex; align-items: center; gap: 12px; }
+  .trade-form-header .back-button { width: auto; min-width: max-content; flex: 0 0 auto; padding: 9px 12px; }
+  .trade-form-header > div { min-width: 0; flex: 1 1 auto; }
+  .trade-form-header h2 { margin: 3px 0 0; font-size: 23px; line-height: 1.25; white-space: nowrap; }
+}
+
+@media (max-width: 380px) {
+  .trade-form-header { gap: 9px; }
+  .trade-form-header .back-button { padding: 8px 9px; font-size: 12px; }
+  .trade-form-header h2 { font-size: 20px; }
+}
