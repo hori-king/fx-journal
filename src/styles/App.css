@@ -112,7 +112,7 @@ button:disabled {
   color: #f8fafc;
 }
 
-.dashboard-main .dashboard-card:nth-child(n+3) .dashboard-card-value {
+.dashboard-main .dashboard-card:nth-child(n+5) .dashboard-card-value {
   font-size: clamp(13px, 1.5vw, 21px);
   line-height: 1.45;
   overflow-wrap: anywhere;
