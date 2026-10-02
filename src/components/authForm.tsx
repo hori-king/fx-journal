@@ -13,14 +13,25 @@ function AuthForm({ onLogin }: AuthFormProps) {
 
   async function handleSubmit() {
     setMessage("");
+    const normalizedEmail = email.trim();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       setMessage("メールアドレスとパスワードを入力してください。");
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setMessage("有効なメールアドレスを入力してください。");
+      return;
+    }
+
+    if (isSignUp && password.length < 6) {
+      setMessage("パスワードは6文字以上で入力してください。");
+      return;
+    }
+
     if (isSignUp) {
-      const result = await signUp(email, password);
+      const result = await signUp(normalizedEmail, password);
 
       if (!result.success) {
         setMessage(result.error || "新規登録に失敗しました。");
@@ -31,7 +42,7 @@ function AuthForm({ onLogin }: AuthFormProps) {
       return;
     }
 
-    const result = await signIn(email, password);
+    const result = await signIn(normalizedEmail, password);
 
     if (!result.success) {
       setMessage(result.error || "ログインに失敗しました。");
@@ -73,7 +84,7 @@ function AuthForm({ onLogin }: AuthFormProps) {
           {isSignUp ? "アカウントを作成" : "ログイン"}
         </button>
 
-        {message && <p className="auth-message" role="status">{message}</p>}
+        {message && <p className="auth-message" role="alert">{message}</p>}
 
         <div className="auth-switch">
           <span>{isSignUp ? "アカウントをお持ちですか？" : "初めてご利用ですか？"}</span>

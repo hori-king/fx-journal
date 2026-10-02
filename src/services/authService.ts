@@ -1,5 +1,30 @@
 import { supabase } from "../lib/supabaseClient";
 
+function translateAuthError(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("invalid login credentials")) {
+    return "メールアドレスまたはパスワードが正しくありません。入力内容をご確認ください。";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "メールアドレスの確認が完了していません。確認メールをご確認ください。";
+  }
+  if (normalized.includes("user already registered") || normalized.includes("already been registered")) {
+    return "このメールアドレスはすでに登録されています。ログインしてください。";
+  }
+  if (normalized.includes("password should be at least") || normalized.includes("password is too short")) {
+    return "パスワードは6文字以上で入力してください。";
+  }
+  if (normalized.includes("unable to validate email") || normalized.includes("invalid email")) {
+    return "有効なメールアドレスを入力してください。";
+  }
+  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
+    return "試行回数が多すぎます。しばらく待ってからもう一度お試しください。";
+  }
+
+  return "認証に失敗しました。入力内容を確認して、もう一度お試しください。";
+}
+
 export async function signUp(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -10,7 +35,7 @@ export async function signUp(email: string, password: string) {
     console.error("新規登録に失敗しました:", error);
     return {
       success: false,
-      error: error.message,
+      error: translateAuthError(error.message),
     };
   }
 
@@ -30,7 +55,7 @@ export async function signIn(email: string, password: string) {
     console.error("ログインに失敗しました:", error);
     return {
       success: false,
-      error: error.message,
+      error: translateAuthError(error.message),
     };
   }
 
