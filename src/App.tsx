@@ -209,6 +209,7 @@ function App() {
             entry: trade.entry,
             exit: trade.exit,
             lot: trade.lot,
+            leverage: trade.leverage ?? null,
             timeframe: trade.timeframe,
             reason: trade.reason,
             takeProfit: trade.takeProfit,

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import {
   addTrade,
+  getPipSize,
   symbols,
   type Direction,
   type Timeframe,
@@ -31,6 +32,7 @@ function TradeForm({
   const [entry, setEntry] = useState(editTrade?.entry.toString() ?? "");
   const [exit, setExit] = useState(editTrade?.exit.toString() ?? "");
   const [lot, setLot] = useState(editTrade?.lot.toString() ?? "");
+  const [leverage, setLeverage] = useState(editTrade?.leverage?.toString() ?? "");
   const [tp, setTp] = useState(editTrade?.takeProfit.toString() ?? "");
   const [sl, setSl] = useState(editTrade?.stopLoss.toString() ?? "");
 
@@ -77,6 +79,7 @@ function TradeForm({
       entry === "" ||
       exit === "" ||
       lot === "" ||
+      leverage === "" ||
       tp === "" ||
       sl === "" ||
       reason === "" ||
@@ -91,6 +94,7 @@ function TradeForm({
     const entryPrice = Number(entry);
     const exitPrice = Number(exit);
     const lotSize = Number(lot);
+    const leverageRatio = Number(leverage);
     const takeProfit = Number(tp);
     const stopLoss = Number(sl);
 
@@ -98,6 +102,7 @@ function TradeForm({
       entryPrice <= 0 ||
       exitPrice <= 0 ||
       lotSize <= 0 ||
+      leverageRatio <= 0 ||
       takeProfit <= 0 ||
       stopLoss <= 0
     ) {
@@ -154,6 +159,7 @@ function TradeForm({
       entry: Number(entry),
       exit: Number(exit),
       lot: Number(lot),
+      leverage: leverageRatio,
       timeframe: timeframe,
       reason: reason,
       methods: editTrade?.methods ?? [],
@@ -178,6 +184,7 @@ function TradeForm({
     setEntry("");
     setExit("");
     setLot("");
+    setLeverage("");
     setTp("");
     setSl("");
     setReason("");
@@ -345,6 +352,24 @@ function TradeForm({
               onChange={(e) => setLot(e.target.value)}
               placeholder="例：0.1"
             />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="trade-leverage">レバレッジ</label>
+            <input
+              id="trade-leverage"
+              type="number"
+              min="1"
+              step="1"
+              value={leverage}
+              onChange={(e) => setLeverage(e.target.value)}
+              placeholder="例：25（25倍）"
+            />
+          </div>
+
+          <div className="form-field pip-size-note">
+            <label>この銘柄の1 pip</label>
+            <output>{getPipSize(symbol || symbolSearch).toLocaleString()}（価格単位）</output>
           </div>
 
           <div className="tp-sl-row">

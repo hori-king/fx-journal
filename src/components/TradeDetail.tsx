@@ -168,6 +168,11 @@ function TradeDetail({
           </div>
 
           <div className="detail-item">
+            <span>レバレッジ</span>
+            <strong>{trade.leverage ? `${trade.leverage}倍` : "未記録"}</strong>
+          </div>
+
+          <div className="detail-item">
             <span>時間足</span>
             <strong>{trade.timeframe}</strong>
           </div>

@@ -18,6 +18,7 @@ export interface TradeInput {
   entry: number;
   exit: number;
   lot: number;
+  leverage: number;
   timeframe: Timeframe;
   reason: string;
   methods: string[];
@@ -28,7 +29,8 @@ export interface TradeInput {
   exitTime: string;
 }
 
-export interface Trade extends TradeInput {
+export interface Trade extends Omit<TradeInput, "leverage"> {
+  leverage?: number | null;
   id: string;
   profit: number;
   pips: number;
@@ -83,6 +85,22 @@ export const symbols = [
   "NIKKEI",
 ];
 
+export function getPipSize(symbol: string): number {
+  const normalizedSymbol = symbol.trim().toUpperCase();
+
+  if (normalizedSymbol === "GOLD") return 0.01;
+  if (normalizedSymbol === "NIKKEI") return 1;
+  if (/^[A-Z]{6}$/.test(normalizedSymbol)) {
+    return normalizedSymbol.endsWith("JPY") ? 0.01 : 0.0001;
+  }
+
+  return 0.0001;
+}
+
+export function calculatePips(symbol: string, entry: number, exit: number): number {
+  return Math.abs(exit - entry) / getPipSize(symbol);
+}
+
 export function createTrade(input: TradeInput): Trade {
   const {
     symbol,
@@ -101,7 +119,7 @@ export function createTrade(input: TradeInput): Trade {
   } = input;
   const priceDifference = direction === "BUY" ? exit - entry : entry - exit;
   const profit = priceDifference * lot * 100;
-  const pips = Math.abs(priceDifference) * 100;
+  const pips = calculatePips(symbol, entry, exit);
   const rr = calcRR(entry, takeProfit, stopLoss, direction);
   const result = getResult(profit);
   const date = new Date().toDateString();
@@ -275,6 +293,7 @@ export function createAIAnalysisData(trade: Trade) {
     takeProfit: trade.takeProfit,
     stopLoss: trade.stopLoss,
     lot: trade.lot,
+    leverage: trade.leverage ?? null,
     profit: trade.profit,
     pips: trade.pips,
     rr: trade.rr,
@@ -305,6 +324,7 @@ export function createAIAnalysisDataset(trades: Trade[]) {
       entry: trade.entry,
       exit: trade.exit,
       lot: trade.lot,
+      leverage: trade.leverage ?? null,
       timeframe: trade.timeframe,
       reason: trade.reason,
       methods: trade.methods,

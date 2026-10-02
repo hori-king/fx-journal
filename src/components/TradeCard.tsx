@@ -55,6 +55,14 @@ function TradeCard({ trade, onDelete, onSelect }: TradeCardProps) {
           <span>時間足</span>
           <strong>{trade.timeframe}</strong>
         </div>
+        <div>
+          <span>Pips</span>
+          <strong>{trade.pips.toFixed(1)}</strong>
+        </div>
+        <div>
+          <span>レバレッジ</span>
+          <strong>{trade.leverage ? `${trade.leverage}倍` : "未記録"}</strong>
+        </div>
       </div>
 
       <div className="trade-card-reason">

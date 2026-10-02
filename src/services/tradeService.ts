@@ -1,4 +1,4 @@
-import type { Trade } from "../tradeData";
+import { calculatePips, type Trade } from "../tradeData";
 import { supabase } from "../lib/supabaseClient";
 
 export async function loadTrades(): Promise<Trade[]> {
@@ -21,6 +21,7 @@ export async function loadTrades(): Promise<Trade[]> {
       entry: trade.entry,
       exit: trade.exit,
       lot: trade.lot,
+      leverage: trade.leverage ?? null,
       timeframe: trade.timeframe as Trade["timeframe"],
       reason: trade.reason,
       methods: [],
@@ -30,7 +31,7 @@ export async function loadTrades(): Promise<Trade[]> {
       entryTime: trade.entry_time,
       exitTime: trade.exit_time,
       profit: trade.profit,
-      pips: trade.pips,
+      pips: calculatePips(trade.symbol, trade.entry, trade.exit),
       rr: trade.rr,
       date: trade.date,
       holdingTime: trade.holding_time,
@@ -48,6 +49,7 @@ export async function insertTrade(trade: Trade): Promise<boolean> {
     entry: trade.entry,
     exit: trade.exit,
     lot: trade.lot,
+    leverage: trade.leverage,
     timeframe: trade.timeframe,
     reason: trade.reason,
     take_profit: trade.takeProfit,
@@ -80,6 +82,7 @@ export async function updateTrade(trade: Trade): Promise<boolean> {
       entry: trade.entry,
       exit: trade.exit,
       lot: trade.lot,
+      leverage: trade.leverage,
       timeframe: trade.timeframe,
       reason: trade.reason,
       take_profit: trade.takeProfit,
