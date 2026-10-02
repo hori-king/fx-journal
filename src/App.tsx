@@ -35,10 +35,14 @@ type SingleAIAnalysis = {
   improvements: string[];
 };
 
+type HomePage = "overview" | "analysis" | "trades";
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [homePage, setHomePage] = useState<HomePage>("overview");
+  const [tradePage, setTradePage] = useState(0);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [singleAiAnalysis, setSingleAiAnalysis] = useState<SingleAIAnalysis | null>(null);
@@ -122,6 +126,15 @@ function App() {
 
     return symbolMatch && directionMatch && resultMatch && startMatch && endMatch;
   });
+  const tradesPerPage = 5;
+  const totalTradePages = Math.ceil(filteredTrades.length / tradesPerPage);
+  const currentTradePage = Math.min(tradePage, Math.max(totalTradePages - 1, 0));
+  const visibleTrades = [...filteredTrades]
+    .sort(
+      (a, b) =>
+        new Date(b.entryTime).getTime() - new Date(a.entryTime).getTime()
+    )
+    .slice(currentTradePage * tradesPerPage, (currentTradePage + 1) * tradesPerPage);
 
   async function handleLogout() {
     const success = await signOut();
@@ -324,6 +337,29 @@ function App() {
                 </p>
               )}
 
+              {!showForm && (
+                <nav className="home-navigation" aria-label="ホームメニュー">
+                  {([
+                    ["overview", "ホーム", "⌂"],
+                    ["analysis", "分析", "▥"],
+                    ["trades", "取引", "≡"],
+                  ] as const).map(([page, label, icon]) => (
+                    <button
+                      key={page}
+                      type="button"
+                      className={homePage === page ? "active" : ""}
+                      aria-current={homePage === page ? "page" : undefined}
+                      onClick={() => setHomePage(page)}
+                    >
+                      <span className="home-navigation-icon" aria-hidden="true">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </nav>
+              )}
+
+              {!showForm && homePage === "overview" && (
+                <section className="home-page overview-page" aria-label="ホーム概要">
               <div className="dashboard">
                 <div className="dashboard-main">
                   <DashboardCard
@@ -368,6 +404,19 @@ function App() {
                 </div>
               </div>
 
+                  <div className="overview-actions">
+                    <button type="button" onClick={() => setShowForm(true)}>
+                      ＋ 取引を追加
+                    </button>
+                    <button type="button" onClick={() => setHomePage("trades")}>
+                      取引履歴を見る
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              {!showForm && homePage === "analysis" && (
+                <section className="home-page analysis-page" aria-label="取引分析">
               <h2>BUY / SELL別の勝率</h2>
 
               <div className="analysis-list">
@@ -416,6 +465,48 @@ function App() {
                 ))}
               </div>
 
+                  <div className="analysis-actions">
+                    <button onClick={testAIAnalysis} disabled={isAnalyzing}>
+                      {isAnalyzing ? "AI分析中" : "AI分析を実行"}
+                    </button>
+                  </div>
+
+                  {aiError && <p className="ai-error">⚠️ AI分析エラー: {aiError}</p>}
+
+                  {aiAnalysis && (
+                    <div className="ai-analysis">
+                      <h2>🤖 AI分析</h2>
+                      <div className="ai-section">
+                        <h3>📊 全体分析</h3>
+                        <p>{aiAnalysis.summary}</p>
+                      </div>
+                      <div className="ai-section">
+                        <h3>💪 良かった特徴</h3>
+                        <ul>{aiAnalysis.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                      </div>
+                      <div className="ai-section">
+                        <h3>⚠️ 注意点</h3>
+                        <ul>{aiAnalysis.weaknesses.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                      </div>
+                      <div className="ai-section">
+                        <h3>💡 改善ポイント</h3>
+                        <ul>{aiAnalysis.improvements.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {!showForm && homePage === "trades" && (
+                <section className="home-page trades-page" aria-label="取引履歴">
+                  <div className="trade-page-heading">
+                    <div>
+                      <p className="trade-search-subtitle">TRADE HISTORY</p>
+                      <h2>取引履歴</h2>
+                    </div>
+                    <button type="button" onClick={() => setShowForm(true)}>＋ 取引を追加</button>
+                  </div>
+
               <div className="trade-search">
                 <div className="trade-search-header">
                   <div>
@@ -433,7 +524,10 @@ function App() {
                     <input
                       type="text"
                       value={tradeSearch}
-                      onChange={(e) => setTradeSearch(e.target.value)}
+                      onChange={(e) => {
+                        setTradeSearch(e.target.value);
+                        setTradePage(0);
+                      }}
                       placeholder="USDJPY、GOLDなど"
                     />
                   </div>
@@ -447,7 +541,7 @@ function App() {
                       <button
                         type="button"
                         className={directionFilter === "ALL" ? "active" : ""}
-                        onClick={() => setDirectionFilter("ALL")}
+                        onClick={() => { setDirectionFilter("ALL"); setTradePage(0); }}
                       >
                         すべて
                       </button>
@@ -455,7 +549,7 @@ function App() {
                       <button
                         type="button"
                         className={directionFilter === "BUY" ? "active buy" : ""}
-                        onClick={() => setDirectionFilter("BUY")}
+                        onClick={() => { setDirectionFilter("BUY"); setTradePage(0); }}
                       >
                         BUY
                       </button>
@@ -463,7 +557,7 @@ function App() {
                       <button
                         type="button"
                         className={directionFilter === "SELL" ? "active sell" : ""}
-                        onClick={() => setDirectionFilter("SELL")}
+                        onClick={() => { setDirectionFilter("SELL"); setTradePage(0); }}
                       >
                         SELL
                       </button>
@@ -477,7 +571,7 @@ function App() {
                       <button
                         type="button"
                         className={resultFilter === "ALL" ? "active" : ""}
-                        onClick={() => setResultFilter("ALL")}
+                        onClick={() => { setResultFilter("ALL"); setTradePage(0); }}
                       >
                         すべて
                       </button>
@@ -485,7 +579,7 @@ function App() {
                       <button
                         type="button"
                         className={resultFilter === "WIN" ? "active win" : ""}
-                        onClick={() => setResultFilter("WIN")}
+                        onClick={() => { setResultFilter("WIN"); setTradePage(0); }}
                       >
                         WIN
                       </button>
@@ -493,7 +587,7 @@ function App() {
                       <button
                         type="button"
                         className={resultFilter === "LOSS" ? "active loss" : ""}
-                        onClick={() => setResultFilter("LOSS")}
+                        onClick={() => { setResultFilter("LOSS"); setTradePage(0); }}
                       >
                         LOSS
                       </button>
@@ -501,7 +595,7 @@ function App() {
                       <button
                         type="button"
                         className={resultFilter === "DRAW" ? "active draw" : ""}
-                        onClick={() => setResultFilter("DRAW")}
+                        onClick={() => { setResultFilter("DRAW"); setTradePage(0); }}
                       >
                         DRAW
                       </button>
@@ -516,7 +610,7 @@ function App() {
                     <input
                       type="date"
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      onChange={(e) => { setStartDate(e.target.value); setTradePage(0); }}
                     />
 
                     <span>〜</span>
@@ -524,7 +618,7 @@ function App() {
                     <input
                       type="date"
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
+                      onChange={(e) => { setEndDate(e.target.value); setTradePage(0); }}
                     />
                   </div>
                 </div>
@@ -537,6 +631,7 @@ function App() {
                     setResultFilter("ALL");
                     setStartDate("");
                     setEndDate("");
+                    setTradePage(0);
                   }}>
                   検索条件をリセット
                 </button>
@@ -556,16 +651,8 @@ function App() {
               ) : filteredTrades.length === 0 ? (
                 <p>検索条件に一致する取引がありません</p>
               ) : (
-
                 <ul className="trade-list">
-                  {[...filteredTrades]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.entryTime).getTime() -
-                        new Date(a.entryTime).getTime()
-                    )
-                    .slice(0, 5)
-                    .map((trade) => (
+                  {visibleTrades.map((trade) => (
                       <TradeCard
                         key={trade.id}
                         trade={trade}
@@ -575,60 +662,26 @@ function App() {
                     ))}
                 </ul>
               )}
-              <div className="dashboard-actions">
-                <button onClick={() => setShowForm((current) => !current)}>
-                  ＋ 取引を追加
-                </button>
-
-                <button
-                  onClick={testAIAnalysis}
-                  disabled={isAnalyzing}>
-                  {isAnalyzing ? "AI分析中" : "AI分析を実行"}
-                </button>
-              </div>
-
-              {aiError && (
-                <p className="ai-error">
-                  ⚠️ AI分析エラー: {aiError}
-                </p>
-              )}
-
-              {aiAnalysis && (
-                <div className="ai-analysis">
-                  <h2>🤖 AI分析</h2>
-
-                  <div className="ai-section">
-                    <h3>📊 全体分析</h3>
-                    <p>{aiAnalysis.summary}</p>
-                  </div>
-
-                  <div className="ai-section">
-                    <h3>💪 良かった特徴</h3>
-                    <ul>
-                      {aiAnalysis.strengths.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="ai-section">
-                    <h3>⚠️ 注意点</h3>
-                    <ul>
-                      {aiAnalysis.weaknesses.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="ai-section">
-                    <h3>💡 改善ポイント</h3>
-                    <ul>
-                      {aiAnalysis.improvements.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+              {totalTradePages > 1 && (
+                <div className="trade-pagination" aria-label="取引履歴ページ">
+                  <button
+                    type="button"
+                    onClick={() => setTradePage((page) => Math.max(page - 1, 0))}
+                    disabled={currentTradePage === 0}
+                  >
+                    前へ
+                  </button>
+                  <span>{currentTradePage + 1} / {totalTradePages}</span>
+                  <button
+                    type="button"
+                    onClick={() => setTradePage((page) => Math.min(page + 1, totalTradePages - 1))}
+                    disabled={currentTradePage >= totalTradePages - 1}
+                  >
+                    次へ
+                  </button>
                 </div>
+              )}
+                </section>
               )}
 
               {showForm && (
