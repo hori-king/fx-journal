@@ -25,8 +25,8 @@ function AuthForm({ onLogin }: AuthFormProps) {
       return;
     }
 
-    if (isSignUp && password.length < 6) {
-      setMessage("パスワードは6文字以上で入力してください。");
+    if (isSignUp && password.length < 8) {
+      setMessage("パスワードは8文字以上で入力してください。");
       return;
     }
 
