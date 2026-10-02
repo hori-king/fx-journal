@@ -31,6 +31,20 @@ function AuthForm({ onLogin }: AuthFormProps) {
     }
 
     if (isSignUp) {
+      const missingRequirements = [
+        !/[A-Z]/.test(password) && "英大文字",
+        !/[a-z]/.test(password) && "英小文字",
+        !/[0-9]/.test(password) && "数字",
+        !/[^A-Za-z0-9\s]/.test(password) && "特殊文字",
+      ].filter(Boolean);
+
+      if (missingRequirements.length > 0) {
+        setMessage(`パスワードには${missingRequirements.join("・")}を含めてください。`);
+        return;
+      }
+    }
+
+    if (isSignUp) {
       const result = await signUp(normalizedEmail, password);
 
       if (!result.success) {
@@ -78,6 +92,11 @@ function AuthForm({ onLogin }: AuthFormProps) {
             placeholder="パスワードを入力"
             autoComplete={isSignUp ? "new-password" : "current-password"}
           />
+          {isSignUp && (
+            <p className="auth-password-hint">
+              8文字以上で、英大文字・英小文字・数字・特殊文字をすべて含めてください。
+            </p>
+          )}
         </div>
 
         <button className="auth-submit" onClick={handleSubmit}>

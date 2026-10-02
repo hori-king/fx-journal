@@ -94,6 +94,12 @@
   outline: none;
   box-shadow: 0 0 0 3px rgba(34, 184, 223, 0.13);
 }
+.auth-password-hint {
+  margin: -2px 0 4px;
+  color: #8fa0b2;
+  font-size: 11px;
+  line-height: 1.6;
+}
 .auth-submit {
   width: 100%;
   height: 46px;

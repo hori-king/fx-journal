@@ -13,7 +13,10 @@ function translateAuthError(message: string) {
     return "このメールアドレスはすでに登録されています。ログインしてください。";
   }
   if (normalized.includes("password should be at least") || normalized.includes("password is too short")) {
-    return "パスワードは6文字以上で入力してください。";
+    return "パスワードは8文字以上で入力してください。";
+  }
+  if (normalized.includes("weak password") || normalized.includes("password does not meet")) {
+    return "パスワードは8文字以上で、英大文字・英小文字・数字・特殊文字をすべて含めてください。";
   }
   if (normalized.includes("unable to validate email") || normalized.includes("invalid email")) {
     return "有効なメールアドレスを入力してください。";
