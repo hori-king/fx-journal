@@ -15,6 +15,10 @@
     padding: 9px 12px;
     white-space: nowrap;
   }
+  .app-header-controls { align-items: flex-end; gap: 7px; }
+  .app-header-controls { flex: 0 0 auto; }
+  .profit-currency-control { font-size: 10px; }
+  .profit-currency-control select { min-height: 36px; padding: 5px 7px; font-size: 12px; }
   .dashboard {
     gap: 10px;
     margin-bottom: 32px;
@@ -51,6 +55,7 @@
     padding: 8px 9px;
     font-size: 12px;
   }
+  .app-header-controls { flex-wrap: wrap; justify-content: flex-end; }
   .dashboard-result {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;

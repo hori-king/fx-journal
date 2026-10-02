@@ -36,6 +36,20 @@ type SingleAIAnalysis = {
 };
 
 type HomePage = "overview" | "analysis" | "trades";
+const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
+
+function formatMoney(value: number, currency: string) {
+  return new Intl.NumberFormat("ja-JP", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatProfitGroups(values: Record<string, number>) {
+  const rows = Object.entries(values);
+  return rows.length === 0 ? "—" : rows.map(([currency, value]) => formatMoney(value, currency)).join(" / ");
+}
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -50,6 +64,25 @@ function App() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [tradeList, setTradeList] = useState<Trade[]>([]);
+  const [displayCurrency, setDisplayCurrency] = useState("JPY");
+
+  function restoreDisplayCurrency(id: string, profileCurrency?: unknown) {
+    const savedCurrency = localStorage.getItem(`fx-journal-currency-${id}`);
+    const currency = typeof profileCurrency === "string" ? profileCurrency : savedCurrency;
+    setDisplayCurrency(profitCurrencyOptions.includes(currency ?? "") ? currency! : "JPY");
+  }
+
+  function handleDisplayCurrencyChange(currency: string) {
+    setDisplayCurrency(currency);
+    if (userId) {
+      localStorage.setItem(`fx-journal-currency-${userId}`, currency);
+      void supabase.auth.updateUser({ data: { profit_currency: currency } })
+        .then(({ error }) => {
+          if (error) console.error("損益通貨の保存に失敗しました:", error);
+        })
+        .catch((error: unknown) => console.error("損益通貨の保存に失敗しました:", error));
+    }
+  }
 
   const [tradeLoadError, setTradeLoadError] = useState<string | null>(null);
 
@@ -82,6 +115,7 @@ function App() {
       if (session) {
         setIsLoggedIn(true);
         setUserId(session.user.id);
+        restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
       } else {
         setIsLoggedIn(false);
         setUserId(null);
@@ -101,6 +135,7 @@ function App() {
       if (session) {
         setIsLoggedIn(true);
         setUserId(session.user.id);
+        restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
       }
     }
 
@@ -215,6 +250,7 @@ function App() {
             takeProfit: trade.takeProfit,
             stopLoss: trade.stopLoss,
             profit: trade.profit,
+            profitCurrency: trade.profitCurrency ?? "JPY",
             pips: trade.pips,
             rr: trade.rr,
             result: trade.result,
@@ -279,6 +315,7 @@ function App() {
           if (session) {
             setIsLoggedIn(true)
             setUserId(session.user.id);
+            restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
           }
         }} />
       ) : (
@@ -287,6 +324,7 @@ function App() {
             isEditing ? (
               <TradeForm
                 userId={userId!}
+                accountCurrency={displayCurrency}
                 editTrade={selectedTrade}
                 onBack={() => setIsEditing(false)}
                 onAddTrade={async (newTrade) => {
@@ -327,9 +365,15 @@ function App() {
                   <h1>運用ノート</h1>
                 </div>
 
-                <button className="logout-button" onClick={handleLogout}>
-                  ログアウト
-                </button>
+                <div className="app-header-controls">
+                  <label className="profit-currency-control">
+                    <span>新規取引の損益通貨</span>
+                    <select value={displayCurrency} onChange={(event) => handleDisplayCurrencyChange(event.target.value)}>
+                      {profitCurrencyOptions.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+                    </select>
+                  </label>
+                  <button className="logout-button" onClick={handleLogout}>ログアウト</button>
+                </div>
               </div>
 
               {tradeLoadError && (
@@ -362,6 +406,9 @@ function App() {
               {!showForm && homePage === "overview" && (
                 <section className="home-page overview-page" aria-label="ホーム概要">
               <div className="dashboard">
+                <p className="dashboard-currency-note">
+                  損益は記録時の通貨ごとに集計します。選択した通貨は新しい取引に適用されます。
+                </p>
                 <div className="dashboard-main">
                   <DashboardCard
                     title="総取引数"
@@ -375,12 +422,12 @@ function App() {
 
                   <DashboardCard
                     title="総利益"
-                    value={`${analysis.totalProfit.toFixed(0)}円`}
+                    value={formatProfitGroups(analysis.profitByCurrency)}
                   />
 
                   <DashboardCard
                     title="平均利益"
-                    value={`${analysis.avgProfit.toFixed(0)}円`}
+                    value={formatProfitGroups(analysis.averageProfitByCurrency)}
                   />
                 </div>
 
@@ -688,6 +735,7 @@ function App() {
               {showForm && (
                 <TradeForm
                   userId={userId!}
+                  accountCurrency={displayCurrency}
                   onBack={() => setShowForm(false)}
                   onAddTrade={async (newTrade) => {
                     const success = await insertTrade(newTrade);

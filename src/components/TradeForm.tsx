@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import {
   addTrade,
+  getInstrumentProfitCurrency,
   getPipSize,
-  symbols,
+  searchXMInstruments,
   type Direction,
   type Timeframe,
   type Trade,
@@ -10,6 +11,7 @@ import {
 
 interface TradeFormProps {
   userId: string;
+  accountCurrency: string;
   onAddTrade: (trade: Trade) => void;
   onBack: () => void;
   editTrade?: Trade;
@@ -17,6 +19,7 @@ interface TradeFormProps {
 
 function TradeForm({
   userId,
+  accountCurrency,
   onAddTrade,
   onBack,
   editTrade,
@@ -33,6 +36,7 @@ function TradeForm({
   const [exit, setExit] = useState(editTrade?.exit.toString() ?? "");
   const [lot, setLot] = useState(editTrade?.lot.toString() ?? "");
   const [leverage, setLeverage] = useState(editTrade?.leverage?.toString() ?? "");
+  const [conversionRate, setConversionRate] = useState(editTrade?.conversionRate?.toString() ?? "");
   const [tp, setTp] = useState(editTrade?.takeProfit.toString() ?? "");
   const [sl, setSl] = useState(editTrade?.stopLoss.toString() ?? "");
 
@@ -51,9 +55,10 @@ function TradeForm({
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const filteredSymbols = symbols.filter((item) =>
-    item.toLowerCase().includes(symbolSearch.toLowerCase())
-  );
+  const filteredSymbols = searchXMInstruments(symbolSearch).slice(0, 40);
+  const nativeProfitCurrency = getInstrumentProfitCurrency(symbol);
+  const tradeProfitCurrency = editTrade?.profitCurrency ?? accountCurrency;
+  const requiresConversion = Boolean(symbol) && nativeProfitCurrency !== tradeProfitCurrency;
 
   function fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -80,6 +85,7 @@ function TradeForm({
       exit === "" ||
       lot === "" ||
       leverage === "" ||
+      (requiresConversion && conversionRate === "") ||
       tp === "" ||
       sl === "" ||
       reason === "" ||
@@ -95,6 +101,7 @@ function TradeForm({
     const exitPrice = Number(exit);
     const lotSize = Number(lot);
     const leverageRatio = Number(leverage);
+    const closingConversionRate = requiresConversion ? Number(conversionRate) : 1;
     const takeProfit = Number(tp);
     const stopLoss = Number(sl);
 
@@ -107,6 +114,12 @@ function TradeForm({
       stopLoss <= 0
     ) {
       alert("価格やロット数は0より大きい値を入力してください。");
+      setSaving(false);
+      return;
+    }
+
+    if (!Number.isFinite(closingConversionRate) || closingConversionRate <= 0) {
+      alert("決済時の換算レートは0より大きい値を入力してください。");
       setSaving(false);
       return;
     }
@@ -160,6 +173,8 @@ function TradeForm({
       exit: Number(exit),
       lot: Number(lot),
       leverage: leverageRatio,
+      profitCurrency: tradeProfitCurrency,
+      conversionRate: closingConversionRate,
       timeframe: timeframe,
       reason: reason,
       methods: editTrade?.methods ?? [],
@@ -185,6 +200,7 @@ function TradeForm({
     setExit("");
     setLot("");
     setLeverage("");
+    setConversionRate("");
     setTp("");
     setSl("");
     setReason("");
@@ -243,16 +259,17 @@ function TradeForm({
 
             {showSymbolList && symbolSearch !== "" && (
               <ul>
-                {filteredSymbols.map((item) => (
+                {filteredSymbols.map((instrument) => (
                   <li
-                    key={item}
+                    key={instrument.symbol}
                     onClick={() => {
-                      setSymbol(item);
-                      setSymbolSearch(item);
+                      setSymbol(instrument.symbol);
+                      setSymbolSearch(`${instrument.symbol} — ${instrument.name}`);
                       setShowSymbolList(false);
                     }}
                   >
-                    {item}
+                    <strong>{instrument.symbol}</strong>
+                    <span>{instrument.name} · {instrument.category}</span>
                   </li>
                 ))}
               </ul>
@@ -369,8 +386,30 @@ function TradeForm({
 
           <div className="form-field pip-size-note">
             <label>この銘柄の1 pip</label>
-            <output>{getPipSize(symbol || symbolSearch).toLocaleString()}（価格単位）</output>
+            <output>{getPipSize(symbol).toLocaleString()}（価格単位）</output>
           </div>
+
+          {requiresConversion && (
+            <div className="form-field currency-conversion-field">
+              <label htmlFor="trade-conversion-rate">
+                決済時の換算レート（1 {nativeProfitCurrency} = ? {tradeProfitCurrency}）
+              </label>
+              <input
+                id="trade-conversion-rate"
+                type="number"
+                min="0.00000001"
+                step="any"
+                value={conversionRate}
+                onChange={(e) => setConversionRate(e.target.value)}
+                placeholder={`例：${nativeProfitCurrency}から${tradeProfitCurrency}への決済時レート`}
+              />
+              <small>決済時点の換算レートを入力してください。</small>
+            </div>
+          )}
+
+          <p className="trade-form-pnl-note">
+            損益は価格差・ロット・XMの契約サイズ・換算レートから計算します。手数料とスワップは含みません。
+          </p>
 
           <div className="tp-sl-row">
             <div className="form-field tp-field">

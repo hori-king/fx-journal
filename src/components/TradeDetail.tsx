@@ -79,7 +79,7 @@ function TradeDetail({
 
           <strong>
             {trade.profit >= 0 ? "+" : ""}
-            {trade.profit.toFixed(0)}円
+            {new Intl.NumberFormat("ja-JP", { style: "currency", currency: trade.profitCurrency ?? "JPY", maximumFractionDigits: 0 }).format(trade.profit)}
           </strong>
 
           <span>{trade.result}</span>

@@ -186,6 +186,18 @@
   font-weight: 700;
 }
 
+.currency-conversion-field small,
+.trade-form-pnl-note {
+  color: #8fa0b2;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.trade-form-pnl-note {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+}
+
 .symbol-field {
   position: relative;
 }
@@ -215,6 +227,17 @@
   cursor: pointer;
   font-size: 14px;
   color: #e2e8f0;
+}
+
+.symbol-field li strong,
+.symbol-field li span {
+  display: block;
+}
+
+.symbol-field li span {
+  margin-top: 3px;
+  color: #8fa0b2;
+  font-size: 11px;
 }
 
 .symbol-field li:hover {

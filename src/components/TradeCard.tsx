@@ -31,7 +31,7 @@ function TradeCard({ trade, onDelete, onSelect }: TradeCardProps) {
         <span>損益</span>
         <strong>
           {trade.profit >= 0 ? "+" : ""}
-          {trade.profit.toFixed(0)}円
+          {new Intl.NumberFormat("ja-JP", { style: "currency", currency: trade.profitCurrency ?? "JPY", maximumFractionDigits: 0 }).format(trade.profit)}
         </strong>
       </div>
 

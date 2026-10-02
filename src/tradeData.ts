@@ -1,3 +1,7 @@
+import { findXMInstrument, xmSymbols } from "./xmInstruments";
+
+export { findXMInstrument, searchXMInstruments, xmInstruments } from "./xmInstruments";
+
 export type Direction = "BUY" | "SELL";
 export type Result = "WIN" | "LOSS" | "DRAW";
 export type Timeframe =
@@ -19,6 +23,8 @@ export interface TradeInput {
   exit: number;
   lot: number;
   leverage: number;
+  profitCurrency: string;
+  conversionRate: number;
   timeframe: Timeframe;
   reason: string;
   methods: string[];
@@ -29,8 +35,10 @@ export interface TradeInput {
   exitTime: string;
 }
 
-export interface Trade extends Omit<TradeInput, "leverage"> {
+export interface Trade extends Omit<TradeInput, "leverage" | "profitCurrency" | "conversionRate"> {
   leverage?: number | null;
+  profitCurrency?: string;
+  conversionRate?: number | null;
   id: string;
   profit: number;
   pips: number;
@@ -46,59 +54,45 @@ export interface AnalyzeResult {
   lossCount: number;
   drawCount: number;
   winRate: number;
-  totalProfit: number;
-  avgProfit: number;
+  totalProfit: number | null;
+  avgProfit: number | null;
+  profitByCurrency: Record<string, number>;
+  averageProfitByCurrency: Record<string, number>;
 }
 
 export const trades: Trade[] = [];
 
-export const symbols = [
-  "USDJPY",
-  "EURJPY",
-  "GBPJPY",
-  "AUDJPY",
-  "NZDJPY",
-  "CADJPY",
-  "CHFJPY",
-  "EURUSD",
-  "GBPUSD",
-  "AUDUSD",
-  "NZDUSD",
-  "USDCAD",
-  "USDCHF",
-  "EURGBP",
-  "EURAUD",
-  "EURNZD",
-  "EURCAD",
-  "EURCHF",
-  "GBPAUD",
-  "GBPNZD",
-  "GBPCAD",
-  "GBPCHF",
-  "AUDNZD",
-  "AUDCAD",
-  "AUDCHF",
-  "NZDCAD",
-  "NZDCHF",
-  "CADCHF",
-  "GOLD",
-  "NIKKEI",
-];
+export const symbols = [...xmSymbols, "NIKKEI"];
 
 export function getPipSize(symbol: string): number {
-  const normalizedSymbol = symbol.trim().toUpperCase();
-
-  if (normalizedSymbol === "GOLD") return 0.01;
-  if (normalizedSymbol === "NIKKEI") return 1;
-  if (/^[A-Z]{6}$/.test(normalizedSymbol)) {
-    return normalizedSymbol.endsWith("JPY") ? 0.01 : 0.0001;
-  }
-
-  return 0.0001;
+  if (symbol.trim().toUpperCase() === "NIKKEI") return 1;
+  return findXMInstrument(symbol)?.pipSize ?? 0.0001;
 }
 
 export function calculatePips(symbol: string, entry: number, exit: number): number {
   return Math.abs(exit - entry) / getPipSize(symbol);
+}
+
+export function getInstrumentProfitCurrency(symbol: string): string {
+  if (symbol.trim().toUpperCase() === "NIKKEI") return "JPY";
+  const instrument = findXMInstrument(symbol);
+  if (instrument) return instrument.profitCurrency;
+  if (/^[A-Z]{6}$/.test(symbol)) return symbol.slice(3).toUpperCase();
+  return "USD";
+}
+
+export function calculateProfit(
+  symbol: string,
+  direction: Direction,
+  entry: number,
+  exit: number,
+  lot: number,
+  conversionRate: number,
+): number {
+  const instrument = findXMInstrument(symbol);
+  const contractSize = instrument?.contractSize ?? (/^[A-Z]{6}$/.test(symbol) ? 100_000 : 1);
+  const priceDifference = direction === "BUY" ? exit - entry : entry - exit;
+  return priceDifference * lot * contractSize * conversionRate;
 }
 
 export function createTrade(input: TradeInput): Trade {
@@ -117,8 +111,14 @@ export function createTrade(input: TradeInput): Trade {
     entryTime,
     exitTime,
   } = input;
-  const priceDifference = direction === "BUY" ? exit - entry : entry - exit;
-  const profit = priceDifference * lot * 100;
+  const profit = calculateProfit(
+    symbol,
+    direction,
+    entry,
+    exit,
+    lot,
+    input.conversionRate,
+  );
   const pips = calculatePips(symbol, entry, exit);
   const rr = calcRR(entry, takeProfit, stopLoss, direction);
   const result = getResult(profit);
@@ -167,6 +167,8 @@ export function analyzeTrades(trades: Trade[]): AnalyzeResult {
       winRate: 0,
       totalProfit: 0,
       avgProfit: 0,
+      profitByCurrency: {},
+      averageProfitByCurrency: {},
     };
   }
 
@@ -175,8 +177,23 @@ export function analyzeTrades(trades: Trade[]): AnalyzeResult {
   const drawCount = trades.filter((trade) => trade.result === "DRAW").length;
 
   const winRate = (winCount / totalTrades) * 100;
-  const totalProfit = trades.reduce((acc, trade) => acc + trade.profit, 0);
-  const avgProfit = totalProfit / totalTrades;
+  const profitByCurrency = trades.reduce<Record<string, number>>((totals, trade) => {
+    const currency = trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol);
+    totals[currency] = (totals[currency] ?? 0) + trade.profit;
+    return totals;
+  }, {});
+  const profitCountsByCurrency = trades.reduce<Record<string, { total: number; count: number }>>((totals, trade) => {
+    const currency = trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol);
+    const current = totals[currency] ?? { total: 0, count: 0 };
+    totals[currency] = { total: current.total + trade.profit, count: current.count + 1 };
+    return totals;
+  }, {});
+  const profitCurrencyValues = Object.values(profitByCurrency);
+  const profitCountValues = Object.values(profitCountsByCurrency);
+  const totalProfit = profitCurrencyValues.length === 1 ? profitCurrencyValues[0] : null;
+  const avgProfit = profitCountValues.length === 1
+    ? profitCountValues[0].total / profitCountValues[0].count
+    : null;
 
   return {
     totalTrades,
@@ -186,6 +203,10 @@ export function analyzeTrades(trades: Trade[]): AnalyzeResult {
     winRate,
     totalProfit,
     avgProfit,
+    profitByCurrency,
+    averageProfitByCurrency: Object.fromEntries(
+      Object.entries(profitCountsByCurrency).map(([currency, value]) => [currency, value.total / value.count])
+    ),
   };
 }
 
@@ -295,6 +316,7 @@ export function createAIAnalysisData(trade: Trade) {
     lot: trade.lot,
     leverage: trade.leverage ?? null,
     profit: trade.profit,
+    profitCurrency: trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol),
     pips: trade.pips,
     rr: trade.rr,
     result: trade.result,
@@ -331,6 +353,7 @@ export function createAIAnalysisDataset(trades: Trade[]) {
       takeProfit: trade.takeProfit,
       stopLoss: trade.stopLoss,
       profit: trade.profit,
+      profitCurrency: trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol),
       pips: trade.pips,
       rr: trade.rr,
       result: trade.result,
