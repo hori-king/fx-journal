@@ -476,7 +476,7 @@ function TradeForm({
         </div>
 
         <div className="form-field">
-          <label>根拠</label>
+          <label>手法・根拠</label>
 
           <input
             type="text"
@@ -484,6 +484,7 @@ function TradeForm({
             onChange={(e) => setReason(e.target.value)}
             placeholder="例：水平線＋包み足"
           />
+          <small>「＋」「,」「、」「・」などで区切ると、手法別に集計されます。</small>
         </div>
 
         <div className="chart-image-field">

@@ -78,6 +78,15 @@ export function calculatePips(symbol: string, entry: number, exit: number): numb
   return Math.abs(exit - entry) / getPipSize(symbol);
 }
 
+export function parseMethodsFromText(text: string): string[] {
+  return [...new Set(
+    text
+      .split(/[＋+、,，・;；|｜/／\n\r]+/)
+      .map((method) => method.trim())
+      .filter(Boolean),
+  )];
+}
+
 export function getInstrumentProfitCurrency(symbol: string): string {
   if (symbol.trim().toUpperCase() === "NIKKEI") return "JPY";
   const instrument = findXMInstrument(symbol);
@@ -109,7 +118,6 @@ export function createTrade(input: TradeInput): Trade {
     lot,
     timeframe,
     reason,
-    methods,
     takeProfit,
     stopLoss,
     chartImage,
@@ -142,7 +150,7 @@ export function createTrade(input: TradeInput): Trade {
     profit,
     timeframe,
     reason,
-    methods,
+    methods: parseMethodsFromText(reason),
     pips,
     rr,
     date,

@@ -1,4 +1,4 @@
-import { calculatePips, getInstrumentProfitCurrency, type Trade } from "../tradeData";
+import { calculatePips, getInstrumentProfitCurrency, parseMethodsFromText, type Trade } from "../tradeData";
 import { supabase } from "../lib/supabaseClient";
 
 export async function loadTrades(): Promise<Trade[]> {
@@ -26,7 +26,7 @@ export async function loadTrades(): Promise<Trade[]> {
       conversionRate: trade.conversion_rate ?? null,
       timeframe: trade.timeframe as Trade["timeframe"],
       reason: trade.reason,
-      methods: [],
+      methods: parseMethodsFromText(trade.reason ?? ""),
       takeProfit: trade.take_profit,
       stopLoss: trade.stop_loss,
       chartImage: trade.chart_image,
