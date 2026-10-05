@@ -1,4 +1,8 @@
 import { supabase } from "../lib/supabaseClient";
+import {
+  COMMUNITY_FALLBACK_DISPLAY_NAME,
+  loadProfilesByUserIds,
+} from "./profileService";
 
 export type CommunityPost = {
   id: string;
@@ -6,6 +10,7 @@ export type CommunityPost = {
   content: string;
   createdAt: string;
   updatedAt: string;
+  displayName: string;
   commentCount: number;
   likeCount: number;
   isLikedByCurrentUser: boolean;
@@ -18,6 +23,7 @@ export type CommunityComment = {
   content: string;
   createdAt: string;
   updatedAt: string;
+  displayName: string;
 };
 
 export type CommunityLike = {
@@ -46,20 +52,28 @@ type CommunityCommentRow = {
   updated_at: string;
 };
 
-function toCommunityPost(row: CommunityPostRow, isLikedByCurrentUser = false): CommunityPost {
+function toCommunityPost(
+  row: CommunityPostRow,
+  isLikedByCurrentUser = false,
+  displayName = COMMUNITY_FALLBACK_DISPLAY_NAME,
+): CommunityPost {
   return {
     id: row.id,
     userId: row.user_id,
     content: row.content,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    displayName,
     commentCount: row.community_comments?.[0]?.count ?? 0,
     likeCount: row.community_likes?.[0]?.count ?? 0,
     isLikedByCurrentUser,
   };
 }
 
-function toCommunityComment(row: CommunityCommentRow): CommunityComment {
+function toCommunityComment(
+  row: CommunityCommentRow,
+  displayName = COMMUNITY_FALLBACK_DISPLAY_NAME,
+): CommunityComment {
   return {
     id: row.id,
     postId: row.post_id,
@@ -67,6 +81,7 @@ function toCommunityComment(row: CommunityCommentRow): CommunityComment {
     content: row.content,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    displayName,
   };
 }
 
@@ -80,6 +95,7 @@ export async function loadCommunityPosts(userId: string | null): Promise<Communi
   const rows = (data ?? []) as CommunityPostRow[];
   const postIds = rows.map((row) => row.id);
   const likedPostIds = new Set<string>();
+  const profiles = await loadProfilesByUserIds(rows.map((row) => row.user_id));
 
   if (userId && postIds.length > 0) {
     const { data: likes, error: likesError } = await supabase
@@ -92,7 +108,11 @@ export async function loadCommunityPosts(userId: string | null): Promise<Communi
     for (const like of likes ?? []) likedPostIds.add(like.post_id);
   }
 
-  return rows.map((row) => toCommunityPost(row, likedPostIds.has(row.id)));
+  return rows.map((row) => toCommunityPost(
+    row,
+    likedPostIds.has(row.id),
+    profiles.get(row.user_id) ?? COMMUNITY_FALLBACK_DISPLAY_NAME,
+  ));
 }
 
 export async function createCommunityPost(content: string): Promise<CommunityPost> {
@@ -155,7 +175,12 @@ export async function loadCommunityComments(postId: string): Promise<CommunityCo
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []).map((row) => toCommunityComment(row as CommunityCommentRow));
+  const rows = (data ?? []) as CommunityCommentRow[];
+  const profiles = await loadProfilesByUserIds(rows.map((row) => row.user_id));
+  return rows.map((row) => toCommunityComment(
+    row,
+    profiles.get(row.user_id) ?? COMMUNITY_FALLBACK_DISPLAY_NAME,
+  ));
 }
 
 export async function createCommunityComment(

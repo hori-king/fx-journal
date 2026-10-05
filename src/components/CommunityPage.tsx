@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
+  COMMUNITY_FALLBACK_DISPLAY_NAME,
+  DISPLAY_NAME_MAX_LENGTH,
+  loadMyProfile,
+  saveMyDisplayName,
+  type Profile,
+} from "../services/profileService";
+import {
   createCommunityPost,
   createCommunityComment,
   createCommunityLike,
@@ -52,6 +59,12 @@ function CommunityPage({ userId }: CommunityPageProps) {
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [displayNameInput, setDisplayNameInput] = useState("");
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -97,6 +110,65 @@ function CommunityPage({ userId }: CommunityPageProps) {
       isActive = false;
     };
   }, [userId]);
+
+  useEffect(() => {
+    let isActive = true;
+    const profileRequest = userId ? loadMyProfile(userId) : Promise.resolve(null);
+    profileRequest
+      .then((loadedProfile) => {
+        if (isActive) {
+          setProfile(loadedProfile);
+          setDisplayNameInput(loadedProfile?.displayName ?? "");
+        }
+      })
+      .catch((error: unknown) => {
+        if (isActive) setProfileError(getErrorMessage(error, "read"));
+      })
+      .finally(() => {
+        if (isActive) setIsProfileLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [userId]);
+
+  async function handleSaveDisplayName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalizedName = displayNameInput.trim();
+    const nameLength = [...normalizedName].length;
+    if (nameLength === 0) {
+      setProfileError("表示名を入力してください。");
+      setProfileSuccess(null);
+      return;
+    }
+    if (nameLength > DISPLAY_NAME_MAX_LENGTH) {
+      setProfileError(`表示名は${DISPLAY_NAME_MAX_LENGTH}文字以内で入力してください。`);
+      setProfileSuccess(null);
+      return;
+    }
+    if (!userId || isSavingProfile) return;
+
+    setIsSavingProfile(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+    try {
+      const savedProfile = await saveMyDisplayName(normalizedName);
+      setProfile(savedProfile);
+      setDisplayNameInput(savedProfile.displayName);
+      setProfileSuccess("表示名を保存しました。過去の投稿・コメントにも反映されます。");
+      try {
+        setPosts(await loadCommunityPosts(userId));
+      } catch (error) {
+        setLoadError(getErrorMessage(error, "read"));
+      }
+    } catch (error) {
+      setProfileError(error instanceof Error
+        ? error.message
+        : "表示名を保存できませんでした。時間をおいて再度お試しください。");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
 
   async function handleToggleLike(postId: string) {
     const post = posts.find((item) => item.id === postId);
@@ -156,7 +228,11 @@ function CommunityPage({ userId }: CommunityPageProps) {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const post = await createCommunityPost(trimmedContent);
+      const savedPost = await createCommunityPost(trimmedContent);
+      const post = {
+        ...savedPost,
+        displayName: profile?.displayName ?? COMMUNITY_FALLBACK_DISPLAY_NAME,
+      };
       setPosts((currentPosts) => [post, ...currentPosts]);
       setContent("");
     } catch (error) {
@@ -171,6 +247,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
       <CommunityPostDetail
         post={selectedPost}
         userId={userId}
+        currentDisplayName={profile?.displayName ?? COMMUNITY_FALLBACK_DISPLAY_NAME}
         onBack={() => setSelectedPost(null)}
         onCommentCountChange={handleCommentCountChange}
         onToggleLike={handleToggleLike}
@@ -192,6 +269,27 @@ function CommunityPage({ userId }: CommunityPageProps) {
           <p className="community-description">トレードの気づきや学びを共有しましょう。</p>
         </div>
       </div>
+
+      <form className="community-profile-form" onSubmit={handleSaveDisplayName}>
+        <div className="community-profile-field">
+          <label htmlFor="community-display-name">コミュニティ表示名</label>
+          <input
+            id="community-display-name"
+            type="text"
+            value={displayNameInput}
+            onChange={(event) => setDisplayNameInput(event.target.value)}
+            placeholder={COMMUNITY_FALLBACK_DISPLAY_NAME}
+            maxLength={DISPLAY_NAME_MAX_LENGTH}
+            disabled={isProfileLoading || isSavingProfile || !userId}
+          />
+          <p>未設定の場合は「{COMMUNITY_FALLBACK_DISPLAY_NAME}」と表示されます。</p>
+        </div>
+        <button type="submit" disabled={isProfileLoading || isSavingProfile || !userId}>
+          {isSavingProfile ? "保存中…" : profile ? "表示名を変更" : "表示名を保存"}
+        </button>
+        {profileError && <p className="community-error" role="alert">{profileError}</p>}
+        {profileSuccess && <p className="community-profile-success" role="status">{profileSuccess}</p>}
+      </form>
 
       <form className="community-composer" onSubmit={handleSubmit}>
         <label htmlFor="community-content">投稿を書く</label>
@@ -232,7 +330,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
           {posts.map((post) => (
             <article className="community-post-card" key={post.id}>
               <div className="community-post-meta">
-                <span className="community-author">匿名トレーダー</span>
+                <span className="community-author">{post.displayName}</span>
                 <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
               </div>
               <p className="community-post-content">{post.content}</p>
@@ -279,6 +377,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
 type CommunityPostDetailProps = {
   post: CommunityPost;
   userId: string | null;
+  currentDisplayName: string;
   onBack: () => void;
   onCommentCountChange: (commentCount: number) => void;
   onToggleLike: (postId: string) => void;
@@ -292,6 +391,7 @@ type CommunityPostDetailProps = {
 function CommunityPostDetail({
   post,
   userId,
+  currentDisplayName,
   onBack,
   onCommentCountChange,
   onToggleLike,
@@ -338,7 +438,8 @@ function CommunityPostDetail({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const comment = await createCommunityComment(post.id, trimmedContent);
+      const savedComment = await createCommunityComment(post.id, trimmedContent);
+      const comment = { ...savedComment, displayName: currentDisplayName };
       const updatedComments = [...comments, comment];
       setComments(updatedComments);
       onCommentCountChange(updatedComments.length);
@@ -373,7 +474,7 @@ function CommunityPostDetail({
       <button type="button" className="community-back-button" onClick={onBack}>← 投稿一覧へ戻る</button>
       <article className="community-post-card community-detail-post">
         <div className="community-post-meta">
-          <span className="community-author">匿名トレーダー</span>
+          <span className="community-author">{post.displayName}</span>
           <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
         </div>
         <p className="community-post-content">{post.content}</p>
@@ -433,7 +534,7 @@ function CommunityPostDetail({
           {comments.map((comment) => (
             <article className="community-comment-card" key={comment.id}>
               <div className="community-post-meta">
-                <span className="community-author">匿名トレーダー</span>
+                <span className="community-author">{comment.displayName}</span>
                 <time dateTime={comment.createdAt}>{formatPostDate(comment.createdAt)}</time>
               </div>
               <p className="community-post-content">{comment.content}</p>

@@ -1,6 +1,19 @@
 .community-page { display: grid; gap: 20px; }
 .community-heading h2, .community-feed-heading h2 { margin-bottom: 0; }
 .community-description { margin: 8px 0 0; color: #91a3b6; }
+.community-profile-form {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px;
+  padding: 16px 18px; border: 1px solid #223246; border-radius: 12px; background: #0d1723;
+}
+.community-profile-field { display: grid; flex: 1 1 240px; gap: 7px; min-width: 0; }
+.community-profile-field label { color: #dce8f4; font-size: 13px; font-weight: 700; }
+.community-profile-field input {
+  width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid #304257;
+  border-radius: 9px; background: #0a121d; color: #edf4fb;
+}
+.community-profile-field p { margin: 0; color: #8497aa; font-size: 12px; }
+.community-profile-form > button { width: auto; min-height: 42px; background: #123e50; color: #b9edff; }
+.community-profile-success { flex-basis: 100%; margin: 0; color: #5ee0a0; font-size: 13px; }
 .community-composer, .community-post-card {
   padding: 20px;
   border: 1px solid #223246;
@@ -23,7 +36,7 @@
 .community-refresh { width: auto; padding: 8px 12px; border: 1px solid #304257; background: #111c2a; color: #c4d2df; }
 .community-post-list { display: grid; gap: 14px; }
 .community-post-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #8da1b6; font-size: 12px; }
-.community-author { color: #63c9e3; font-weight: 700; }
+.community-author { max-width: 100%; overflow-wrap: anywhere; color: #63c9e3; font-weight: 700; }
 .community-post-content { margin: 14px 0 0; color: #e5edf6; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
 .community-open-post { width: auto; margin-top: 14px; padding: 8px 12px; border: 1px solid #304257; background: #111c2a; color: #8de4fb; }
 .community-post-comment-count { margin: 12px 0 0; color: #8da1b6; font-size: 12px; }
@@ -57,6 +70,8 @@
 .community-error { margin: 0; color: #ff9098; line-height: 1.6; }
 
 @media (max-width: 700px) {
+  .community-profile-form { align-items: stretch; padding: 14px; }
+  .community-profile-form > button { width: 100%; min-height: 44px; }
   .community-composer, .community-post-card { padding: 16px; }
   .community-composer-footer button { min-height: 44px; }
   .community-post-meta { align-items: flex-start; flex-direction: column; gap: 4px; }
