@@ -72,6 +72,7 @@ function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [tradeList, setTradeList] = useState<Trade[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("JPY");
+  const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
 
   function restoreDisplayCurrency(id: string, profileCurrency?: unknown) {
     const savedCurrency = localStorage.getItem(`fx-journal-currency-${id}`);
@@ -89,6 +90,40 @@ function App() {
         })
         .catch((error: unknown) => console.error("損益通貨の保存に失敗しました:", error));
     }
+  }
+
+  function restoreHiddenMethods(id: string, profileMethods?: unknown) {
+    let localMethods: unknown;
+    try {
+      localMethods = JSON.parse(localStorage.getItem(`fx-journal-hidden-methods-${id}`) ?? "[]");
+    } catch {
+      localMethods = [];
+    }
+    const savedMethods = Array.isArray(profileMethods)
+      ? profileMethods
+      : Array.isArray(localMethods) ? localMethods : [];
+    setHiddenMethods(savedMethods.filter((method): method is string => typeof method === "string"));
+  }
+
+  function saveHiddenMethods(methods: string[]) {
+    setHiddenMethods(methods);
+    if (!userId) return;
+
+    localStorage.setItem(`fx-journal-hidden-methods-${userId}`, JSON.stringify(methods));
+    void supabase.auth.updateUser({ data: { hidden_methods: methods } })
+      .then(({ error }) => {
+        if (error) console.error("手法選択肢の保存に失敗しました:", error);
+      })
+      .catch((error: unknown) => console.error("手法選択肢の保存に失敗しました:", error));
+  }
+
+  function hideMethodOption(method: string) {
+    saveHiddenMethods([...new Set([...hiddenMethods, method])]);
+  }
+
+  function restoreMethodOption(methods: string[]) {
+    const restoredMethods = new Set(methods);
+    saveHiddenMethods(hiddenMethods.filter((method) => !restoredMethods.has(method)));
   }
 
   const [tradeLoadError, setTradeLoadError] = useState<string | null>(null);
@@ -123,10 +158,12 @@ function App() {
         setIsLoggedIn(true);
         setUserId(session.user.id);
         restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
+        restoreHiddenMethods(session.user.id, session.user.user_metadata?.hidden_methods);
       } else {
         setIsLoggedIn(false);
         setUserId(null);
         setTradeList([]);
+        setHiddenMethods([]);
       }
     });
 
@@ -143,6 +180,7 @@ function App() {
         setIsLoggedIn(true);
         setUserId(session.user.id);
         restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
+        restoreHiddenMethods(session.user.id, session.user.user_metadata?.hidden_methods);
       }
     }
 
@@ -160,7 +198,13 @@ function App() {
   const directionAnalysis = analyzeWinRateByDirection(tradeList);
   const symbolAnalysis = analyzeWinRateBySymbol(tradeList);
   const methodPerformance = analyzeMethodPerformance(tradeList);
-  const availableMethods = [...new Set(tradeList.flatMap((trade) => trade.methods ?? []))];
+  const availableMethods = [...new Set([
+    "水平線",
+    "逆張り",
+    "包み足",
+    "ゴールデンクロス",
+    ...tradeList.flatMap((trade) => trade.methods ?? []),
+  ])].filter((method) => !hiddenMethods.includes(method));
   const filteredMethodPerformance = methodPerformance.filter((item) =>
     item.method.toLocaleLowerCase("ja").includes(methodSearch.trim().toLocaleLowerCase("ja"))
   );
@@ -194,6 +238,7 @@ function App() {
     setIsLoggedIn(false);
     setUserId(null);
     setTradeList([]);
+    setHiddenMethods([]);
     setSelectedTrade(null);
     setAiAnalysis(null);
     setSingleAiAnalysis(null);
@@ -328,6 +373,7 @@ function App() {
             setIsLoggedIn(true)
             setUserId(session.user.id);
             restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
+            restoreHiddenMethods(session.user.id, session.user.user_metadata?.hidden_methods);
           }
         }} />
       ) : (
@@ -338,6 +384,9 @@ function App() {
                 userId={userId!}
                 accountCurrency={displayCurrency}
                 methodOptions={availableMethods}
+                hiddenMethods={hiddenMethods}
+                onRemoveMethodOption={hideMethodOption}
+                onRestoreMethodOptions={restoreMethodOption}
                 editTrade={selectedTrade}
                 onBack={() => setIsEditing(false)}
                 onAddTrade={async (newTrade) => {
@@ -773,6 +822,9 @@ function App() {
                   userId={userId!}
                   accountCurrency={displayCurrency}
                   methodOptions={availableMethods}
+                  hiddenMethods={hiddenMethods}
+                  onRemoveMethodOption={hideMethodOption}
+                  onRestoreMethodOptions={restoreMethodOption}
                   onBack={() => setShowForm(false)}
                   onAddTrade={async (newTrade) => {
                     const success = await insertTrade(newTrade);

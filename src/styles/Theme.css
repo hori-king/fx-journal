@@ -195,18 +195,41 @@ body {
   flex-wrap: wrap;
   gap: 8px;
 }
+.method-picker-item {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid #29394a;
+  border-radius: 9px;
+  background: #0b131e;
+}
 .method-picker-option {
   width: auto;
   min-height: 38px;
   padding: 8px 12px;
-  border: 1px solid #29394a;
-  background: #0b131e;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #b8c6d6;
 }
 .method-picker-option.selected {
   border-color: #0e7490;
   background: rgba(14, 116, 144, .2);
   color: #8de4fb;
+}
+.method-picker-remove {
+  width: 32px;
+  padding: 0;
+  border-left: 1px solid #29394a;
+  border-radius: 0;
+  background: transparent;
+  color: #8796a8;
+  font-size: 18px;
+}
+.method-picker-remove:hover {
+  background: rgba(244, 63, 94, .14);
+  color: #fda4af;
+  transform: none;
 }
 .method-picker-custom {
   display: grid;

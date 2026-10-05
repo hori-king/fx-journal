@@ -14,6 +14,9 @@ interface TradeFormProps {
   userId: string;
   accountCurrency: string;
   methodOptions: string[];
+  hiddenMethods: string[];
+  onRemoveMethodOption: (method: string) => void;
+  onRestoreMethodOptions: (methods: string[]) => void;
   onAddTrade: (trade: Trade) => void;
   onBack: () => void;
   editTrade?: Trade;
@@ -23,6 +26,9 @@ function TradeForm({
   userId,
   accountCurrency,
   methodOptions,
+  hiddenMethods,
+  onRemoveMethodOption,
+  onRestoreMethodOptions,
   onAddTrade,
   onBack,
   editTrade,
@@ -67,14 +73,12 @@ function TradeForm({
   const tradeProfitCurrency = editTrade?.profitCurrency ?? accountCurrency;
   const requiresConversion = Boolean(symbol) && nativeProfitCurrency !== tradeProfitCurrency;
   const availableMethods = [...new Set([
-    "水平線",
-    "逆張り",
-    "包み足",
-    "ゴールデンクロス",
     ...methodOptions,
     ...createdMethodOptions,
     ...selectedMethods,
-  ])].sort((a, b) => a.localeCompare(b, "ja"));
+  ])]
+    .filter((method) => !hiddenMethods.includes(method) || selectedMethods.includes(method))
+    .sort((a, b) => a.localeCompare(b, "ja"));
 
   function toggleMethod(method: string) {
     setSelectedMethods((current) =>
@@ -87,6 +91,7 @@ function TradeForm({
   function addCustomMethod() {
     const methodsToAdd = parseMethodsFromText(newMethod);
     if (methodsToAdd.length === 0) return;
+    onRestoreMethodOptions(methodsToAdd);
     setCreatedMethodOptions((current) => [...new Set([...current, ...methodsToAdd])]);
     setSelectedMethods((current) => [...new Set([...current, ...methodsToAdd])]);
     setNewMethod("");
@@ -515,15 +520,27 @@ function TradeForm({
               {availableMethods.map((method) => {
                 const isSelected = selectedMethods.includes(method);
                 return (
-                  <button
-                    type="button"
-                    key={method}
-                    className={`method-picker-option${isSelected ? " selected" : ""}`}
-                    aria-pressed={isSelected}
-                    onClick={() => toggleMethod(method)}
-                  >
-                    {method}
-                  </button>
+                  <div className="method-picker-item" key={method}>
+                    <button
+                      type="button"
+                      className={`method-picker-option${isSelected ? " selected" : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => toggleMethod(method)}
+                    >
+                      {method}
+                    </button>
+                    {!hiddenMethods.includes(method) && (
+                      <button
+                        type="button"
+                        className="method-picker-remove"
+                        aria-label={`${method}を選択肢から削除`}
+                        title="選択肢から削除（過去の取引記録は残ります）"
+                        onClick={() => onRemoveMethodOption(method)}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -545,7 +562,7 @@ function TradeForm({
                 手法を追加
               </button>
             </div>
-            <small>複数選択できます。追加した手法は次回以降の選択肢にも表示されます。</small>
+            <small>複数選択できます。×で選択肢から削除できます（過去の取引分析には残ります）。手入力で再追加できます。</small>
           </div>
         </div>
 
