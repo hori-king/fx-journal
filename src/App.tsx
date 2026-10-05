@@ -4,6 +4,7 @@ import {
   analyzeWinRateByDirection,
   analyzeWinRateBySymbol,
   analyzeWinRateByMethod,
+  analyzeTradesByReason,
   createAIAnalysisDataset,
   type Trade
 } from "./tradeData";
@@ -49,6 +50,13 @@ function formatMoney(value: number, currency: string) {
 function formatProfitGroups(values: Record<string, number>) {
   const rows = Object.entries(values);
   return rows.length === 0 ? "—" : rows.map(([currency, value]) => formatMoney(value, currency)).join(" / ");
+}
+
+function formatSignedProfitGroups(values: Record<string, number>) {
+  const rows = Object.entries(values);
+  return rows.length === 0
+    ? "—"
+    : rows.map(([currency, value]) => `${value > 0 ? "+" : ""}${formatMoney(value, currency)}`).join(" / ");
 }
 
 function App() {
@@ -152,6 +160,7 @@ function App() {
   const directionAnalysis = analyzeWinRateByDirection(tradeList);
   const symbolAnalysis = analyzeWinRateBySymbol(tradeList);
   const methodAnalysis = analyzeWinRateByMethod(tradeList);
+  const reasonAnalysis = analyzeTradesByReason(tradeList);
   const filteredTrades = tradeList.filter((trade) => {
     const symbolMatch = trade.symbol.toLowerCase().includes(tradeSearch.toLowerCase());
     const directionMatch = directionFilter === "ALL" || trade.direction === directionFilter;
@@ -512,6 +521,32 @@ function App() {
                   </div>
                 ))}
               </div>
+
+              <h2>エントリー理由別の成績</h2>
+
+              {reasonAnalysis.length === 0 ? (
+                <p className="reason-analysis-empty">取引データがありません。</p>
+              ) : (
+                <div className="analysis-list reason-analysis-list">
+                  {reasonAnalysis.map((item) => (
+                    <div className="analysis-card reason-analysis-card" key={item.reason}>
+                      <h3>{item.reason}</h3>
+                      <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
+                      <p className="reason-analysis-rate-label">勝率</p>
+                      <div className="reason-analysis-counts">
+                        <p><span>取引数</span><strong>{item.totalTrades}</strong></p>
+                        <p><span>勝ち</span><strong>{item.winCount}</strong></p>
+                        <p><span>負け</span><strong>{item.lossCount}</strong></p>
+                        <p><span>引き分け</span><strong>{item.drawCount}</strong></p>
+                      </div>
+                      <div className="reason-analysis-totals">
+                        <p><span>総損益</span><strong>{formatSignedProfitGroups(item.profitByCurrency)}</strong></p>
+                        <p><span>総pips</span><strong>{item.totalPips > 0 ? "+" : ""}{item.totalPips.toLocaleString("ja-JP", { maximumFractionDigits: 1 })} pips</strong></p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
                   <div className="analysis-actions">
                     <button onClick={testAIAnalysis} disabled={isAnalyzing}>

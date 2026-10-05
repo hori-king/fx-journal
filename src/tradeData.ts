@@ -60,6 +60,11 @@ export interface AnalyzeResult {
   averageProfitByCurrency: Record<string, number>;
 }
 
+export interface ReasonAnalysis extends AnalyzeResult {
+  reason: string;
+  totalPips: number;
+}
+
 export const trades: Trade[] = [];
 
 export const symbols = [...xmSymbols, "NIKKEI"];
@@ -208,6 +213,28 @@ export function analyzeTrades(trades: Trade[]): AnalyzeResult {
       Object.entries(profitCountsByCurrency).map(([currency, value]) => [currency, value.total / value.count])
     ),
   };
+}
+
+export function analyzeTradesByReason(trades: Trade[]): ReasonAnalysis[] {
+  const tradesByReason = new Map<string, Trade[]>();
+
+  for (const trade of trades) {
+    const reason = trade.reason.trim() || "理由未入力";
+    const reasonTrades = tradesByReason.get(reason) ?? [];
+    reasonTrades.push(trade);
+    tradesByReason.set(reason, reasonTrades);
+  }
+
+  return [...tradesByReason.entries()]
+    .map(([reason, reasonTrades]) => ({
+      reason,
+      ...analyzeTrades(reasonTrades),
+      totalPips: reasonTrades.reduce((total, trade) => {
+        const sign = trade.result === "WIN" ? 1 : trade.result === "LOSS" ? -1 : 0;
+        return total + trade.pips * sign;
+      }, 0),
+    }))
+    .sort((a, b) => b.totalTrades - a.totalTrades || a.reason.localeCompare(b.reason, "ja"));
 }
 
 function getResult(profit: number): Result {
