@@ -27,6 +27,16 @@
 .community-post-content { margin: 14px 0 0; color: #e5edf6; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
 .community-open-post { width: auto; margin-top: 14px; padding: 8px 12px; border: 1px solid #304257; background: #111c2a; color: #8de4fb; }
 .community-post-comment-count { margin: 12px 0 0; color: #8da1b6; font-size: 12px; }
+.community-post-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.community-post-actions .community-like-button, .community-post-actions .community-open-post { margin-top: 0; }
+.community-post-actions .community-post-comment-count { margin: 0 auto 0 4px; }
+.community-delete-button {
+  width: auto; min-height: 40px; padding: 8px 10px; border: 1px solid transparent;
+  background: transparent; color: #9aa9b8; font-size: 12px;
+}
+.community-delete-button:hover { border-color: rgba(248, 113, 113, .3); background: rgba(127, 29, 29, .16); color: #fca5a5; }
+.community-delete-button:disabled { cursor: wait; opacity: .55; }
+.community-comment-delete { margin-top: 10px; }
 .community-detail-page { gap: 16px; }
 .community-back-button { width: auto; justify-self: start; padding: 9px 13px; border: 1px solid #304257; background: #111c2a; color: #c4d2df; }
 .community-detail-post .community-post-content { font-size: 16px; }
@@ -50,4 +60,7 @@
   .community-composer, .community-post-card { padding: 16px; }
   .community-composer-footer button { min-height: 44px; }
   .community-post-meta { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .community-post-actions { gap: 6px; }
+  .community-post-actions .community-delete-button { min-height: 44px; }
+  .community-comment-delete { min-height: 44px; }
 }

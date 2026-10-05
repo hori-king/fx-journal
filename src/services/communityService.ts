@@ -110,6 +110,18 @@ export async function createCommunityPost(content: string): Promise<CommunityPos
   return toCommunityPost(data as CommunityPostRow);
 }
 
+export async function deleteCommunityPost(postId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("community_posts")
+    .delete()
+    .eq("id", postId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("この投稿を削除できませんでした。");
+}
+
 async function getAuthenticatedUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
@@ -162,4 +174,16 @@ export async function createCommunityComment(
 
   if (error) throw error;
   return toCommunityComment(data as CommunityCommentRow);
+}
+
+export async function deleteCommunityComment(commentId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("community_comments")
+    .delete()
+    .eq("id", commentId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("このコメントを削除できませんでした。");
 }

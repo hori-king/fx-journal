@@ -3,6 +3,8 @@ import {
   createCommunityPost,
   createCommunityComment,
   createCommunityLike,
+  deleteCommunityComment,
+  deleteCommunityPost,
   loadCommunityComments,
   loadCommunityPosts,
   removeCommunityLike,
@@ -14,7 +16,7 @@ type CommunityPageProps = {
   userId: string | null;
 };
 
-function getErrorMessage(error: unknown, action: "read" | "write"): string {
+function getErrorMessage(error: unknown, action: "read" | "write" | "delete"): string {
   const details = typeof error === "object" && error !== null
     ? error as { code?: unknown; message?: unknown }
     : null;
@@ -28,7 +30,9 @@ function getErrorMessage(error: unknown, action: "read" | "write"): string {
   }
   return action === "write"
     ? "投稿に失敗しました。通信状態を確認して、もう一度お試しください。"
-    : "投稿一覧を取得できませんでした。時間をおいて再度お試しください。";
+    : action === "delete"
+      ? "削除に失敗しました。時間をおいて再度お試しください。"
+      : "投稿一覧を取得できませんでした。時間をおいて再度お試しください。";
 }
 
 function formatPostDate(value: string): string {
@@ -53,6 +57,8 @@ function CommunityPage({ userId }: CommunityPageProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [likeError, setLikeError] = useState<string | null>(null);
   const [pendingLikePostIds, setPendingLikePostIds] = useState<Set<string>>(() => new Set());
+  const [postDeleteError, setPostDeleteError] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const refreshPosts = useCallback(async () => {
     setIsLoading(true);
@@ -125,6 +131,23 @@ function CommunityPage({ userId }: CommunityPageProps) {
     }
   }
 
+  async function handleDeletePost(post: CommunityPost) {
+    if (deletingPostId !== null) return;
+    if (!window.confirm("この投稿を削除しますか？")) return;
+
+    setDeletingPostId(post.id);
+    setPostDeleteError(null);
+    try {
+      await deleteCommunityPost(post.id);
+      setPosts((currentPosts) => currentPosts.filter((item) => item.id !== post.id));
+      setSelectedPost((currentPost) => currentPost?.id === post.id ? null : currentPost);
+    } catch (error) {
+      setPostDeleteError(getErrorMessage(error, "delete"));
+    } finally {
+      setDeletingPostId(null);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedContent = content.trim();
@@ -153,6 +176,9 @@ function CommunityPage({ userId }: CommunityPageProps) {
         onToggleLike={handleToggleLike}
         isLikeUpdating={pendingLikePostIds.has(selectedPost.id)}
         likeError={likeError}
+        onDeletePost={() => handleDeletePost(selectedPost)}
+        isDeletingPost={deletingPostId === selectedPost.id}
+        postDeleteError={postDeleteError}
       />
     );
   }
@@ -196,6 +222,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
 
       {loadError && <p className="community-error" role="alert">{loadError}</p>}
       {likeError && <p className="community-error" role="alert">{likeError}</p>}
+      {postDeleteError && <p className="community-error" role="alert">{postDeleteError}</p>}
       {isLoading ? (
         <p className="community-empty" role="status">投稿を読み込んでいます…</p>
       ) : posts.length === 0 ? (
@@ -209,25 +236,37 @@ function CommunityPage({ userId }: CommunityPageProps) {
                 <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
               </div>
               <p className="community-post-content">{post.content}</p>
-              <button
-                type="button"
-                className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
-                onClick={() => void handleToggleLike(post.id)}
-                disabled={pendingLikePostIds.has(post.id)}
-                aria-pressed={post.isLikedByCurrentUser}
-                aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
-              >
-                {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
-              </button>
-              <p className="community-post-comment-count">コメント {post.commentCount}件</p>
-              <button
-                type="button"
-                className="community-open-post"
-                onClick={() => setSelectedPost(post)}
-                aria-label="コメントを見る"
-              >
-                コメントを見る
-              </button>
+              <div className="community-post-actions">
+                <button
+                  type="button"
+                  className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
+                  onClick={() => void handleToggleLike(post.id)}
+                  disabled={pendingLikePostIds.has(post.id)}
+                  aria-pressed={post.isLikedByCurrentUser}
+                  aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
+                >
+                  {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
+                </button>
+                <span className="community-post-comment-count">コメント {post.commentCount}件</span>
+                <button
+                  type="button"
+                  className="community-open-post"
+                  onClick={() => setSelectedPost(post)}
+                  aria-label="コメントを見る"
+                >
+                  コメントを見る
+                </button>
+                {post.userId === userId && (
+                  <button
+                    type="button"
+                    className="community-delete-button"
+                    onClick={() => void handleDeletePost(post)}
+                    disabled={deletingPostId === post.id}
+                  >
+                    {deletingPostId === post.id ? "削除中…" : "投稿を削除"}
+                  </button>
+                )}
+              </div>
             </article>
           ))}
         </div>
@@ -245,6 +284,9 @@ type CommunityPostDetailProps = {
   onToggleLike: (postId: string) => void;
   isLikeUpdating: boolean;
   likeError: string | null;
+  onDeletePost: () => Promise<void>;
+  isDeletingPost: boolean;
+  postDeleteError: string | null;
 };
 
 function CommunityPostDetail({
@@ -255,6 +297,9 @@ function CommunityPostDetail({
   onToggleLike,
   isLikeUpdating,
   likeError,
+  onDeletePost,
+  isDeletingPost,
+  postDeleteError,
 }: CommunityPostDetailProps) {
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [content, setContent] = useState("");
@@ -262,6 +307,8 @@ function CommunityPostDetail({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [commentDeleteError, setCommentDeleteError] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -303,6 +350,24 @@ function CommunityPostDetail({
     }
   }
 
+  async function handleDeleteComment(comment: CommunityComment) {
+    if (deletingCommentId !== null) return;
+    if (!window.confirm("このコメントを削除しますか？")) return;
+
+    setDeletingCommentId(comment.id);
+    setCommentDeleteError(null);
+    try {
+      await deleteCommunityComment(comment.id);
+      const updatedComments = comments.filter((item) => item.id !== comment.id);
+      setComments(updatedComments);
+      onCommentCountChange(updatedComments.length);
+    } catch (error) {
+      setCommentDeleteError(getErrorMessage(error, "delete"));
+    } finally {
+      setDeletingCommentId(null);
+    }
+  }
+
   return (
     <section className="home-page community-page community-detail-page" aria-label="投稿詳細">
       <button type="button" className="community-back-button" onClick={onBack}>← 投稿一覧へ戻る</button>
@@ -312,17 +377,25 @@ function CommunityPostDetail({
           <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
         </div>
         <p className="community-post-content">{post.content}</p>
-        <button
-          type="button"
-          className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
-          onClick={() => onToggleLike(post.id)}
-          disabled={isLikeUpdating}
-          aria-pressed={post.isLikedByCurrentUser}
-          aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
-        >
-          {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
-        </button>
+        <div className="community-post-actions">
+          <button
+            type="button"
+            className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
+            onClick={() => onToggleLike(post.id)}
+            disabled={isLikeUpdating}
+            aria-pressed={post.isLikedByCurrentUser}
+            aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
+          >
+            {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
+          </button>
+          {post.userId === userId && (
+            <button type="button" className="community-delete-button" onClick={() => void onDeletePost()} disabled={isDeletingPost}>
+              {isDeletingPost ? "削除中…" : "投稿を削除"}
+            </button>
+          )}
+        </div>
         {likeError && <p className="community-error" role="alert">{likeError}</p>}
+        {postDeleteError && <p className="community-error" role="alert">{postDeleteError}</p>}
       </article>
 
       <div className="community-feed-heading">
@@ -364,10 +437,21 @@ function CommunityPostDetail({
                 <time dateTime={comment.createdAt}>{formatPostDate(comment.createdAt)}</time>
               </div>
               <p className="community-post-content">{comment.content}</p>
+              {comment.userId === userId && (
+                <button
+                  type="button"
+                  className="community-delete-button community-comment-delete"
+                  onClick={() => void handleDeleteComment(comment)}
+                  disabled={deletingCommentId !== null}
+                >
+                  {deletingCommentId === comment.id ? "削除中…" : "コメントを削除"}
+                </button>
+              )}
             </article>
           ))}
         </div>
       )}
+      {commentDeleteError && <p className="community-error" role="alert">{commentDeleteError}</p>}
     </section>
   );
 }
