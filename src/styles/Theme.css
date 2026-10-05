@@ -120,27 +120,27 @@ body {
   font-size: 25px !important;
   font-variant-numeric: tabular-nums;
 }
-.reason-analysis-list {
+.method-analysis-list {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }
-.reason-analysis-card h3 {
+.method-analysis-card h3 {
   overflow-wrap: anywhere;
 }
-.reason-analysis-card .reason-analysis-rate-label {
+.method-analysis-card .method-analysis-rate-label {
   margin: -2px 0 14px;
   color: var(--muted);
 }
-.reason-analysis-counts,
-.reason-analysis-totals {
+.method-analysis-counts,
+.method-analysis-totals {
   display: grid;
   gap: 8px;
 }
-.reason-analysis-counts {
+.method-analysis-counts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 14px;
 }
-.reason-analysis-counts p,
-.reason-analysis-totals p {
+.method-analysis-counts p,
+.method-analysis-totals p {
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -150,20 +150,20 @@ body {
   border-radius: 8px;
   background: #0b131e;
 }
-.reason-analysis-counts strong,
-.reason-analysis-totals strong {
+.method-analysis-counts strong,
+.method-analysis-totals strong {
   color: #e5edf6;
   text-align: right;
   overflow-wrap: anywhere;
 }
-.reason-analysis-totals p {
+.method-analysis-totals p {
   align-items: flex-start;
   flex-direction: column;
 }
-.reason-analysis-totals strong {
+.method-analysis-totals strong {
   color: #38bdf8;
 }
-.reason-analysis-empty {
+.method-analysis-empty {
   margin: 0 0 34px;
   color: var(--muted);
 }

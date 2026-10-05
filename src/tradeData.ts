@@ -60,8 +60,8 @@ export interface AnalyzeResult {
   averageProfitByCurrency: Record<string, number>;
 }
 
-export interface ReasonAnalysis extends AnalyzeResult {
-  reason: string;
+export interface MethodAnalysis extends AnalyzeResult {
+  method: string;
   totalPips: number;
 }
 
@@ -215,26 +215,30 @@ export function analyzeTrades(trades: Trade[]): AnalyzeResult {
   };
 }
 
-export function analyzeTradesByReason(trades: Trade[]): ReasonAnalysis[] {
-  const tradesByReason = new Map<string, Trade[]>();
+export function analyzeMethodPerformance(trades: Trade[]): MethodAnalysis[] {
+  const tradesByMethod = new Map<string, Trade[]>();
 
   for (const trade of trades) {
-    const reason = trade.reason.trim() || "理由未入力";
-    const reasonTrades = tradesByReason.get(reason) ?? [];
-    reasonTrades.push(trade);
-    tradesByReason.set(reason, reasonTrades);
+    const methods = [...new Set(trade.methods.map((method) => method.trim()).filter(Boolean))];
+    const tradeMethods = methods.length > 0 ? methods : ["手法未設定"];
+
+    for (const method of tradeMethods) {
+      const methodTrades = tradesByMethod.get(method) ?? [];
+      methodTrades.push(trade);
+      tradesByMethod.set(method, methodTrades);
+    }
   }
 
-  return [...tradesByReason.entries()]
-    .map(([reason, reasonTrades]) => ({
-      reason,
-      ...analyzeTrades(reasonTrades),
-      totalPips: reasonTrades.reduce((total, trade) => {
+  return [...tradesByMethod.entries()]
+    .map(([method, methodTrades]) => ({
+      method,
+      ...analyzeTrades(methodTrades),
+      totalPips: methodTrades.reduce((total, trade) => {
         const sign = trade.result === "WIN" ? 1 : trade.result === "LOSS" ? -1 : 0;
         return total + trade.pips * sign;
       }, 0),
     }))
-    .sort((a, b) => b.totalTrades - a.totalTrades || a.reason.localeCompare(b.reason, "ja"));
+    .sort((a, b) => b.totalTrades - a.totalTrades || a.method.localeCompare(b.method, "ja"));
 }
 
 function getResult(profit: number): Result {
