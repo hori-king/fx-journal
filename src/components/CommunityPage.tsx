@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   createCommunityPost,
   createCommunityComment,
+  createCommunityLike,
   loadCommunityComments,
   loadCommunityPosts,
+  removeCommunityLike,
   type CommunityComment,
   type CommunityPost,
 } from "../services/communityService";
@@ -49,18 +51,20 @@ function CommunityPage({ userId }: CommunityPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [likeError, setLikeError] = useState<string | null>(null);
+  const [pendingLikePostIds, setPendingLikePostIds] = useState<Set<string>>(() => new Set());
 
   const refreshPosts = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      setPosts(await loadCommunityPosts());
+      setPosts(await loadCommunityPosts(userId));
     } catch (error) {
       setLoadError(getErrorMessage(error, "read"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   const handleCommentCountChange = useCallback((commentCount: number) => {
     if (!selectedPost) return;
@@ -73,7 +77,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
 
   useEffect(() => {
     let isActive = true;
-    loadCommunityPosts()
+    loadCommunityPosts(userId)
       .then((loadedPosts) => {
         if (isActive) setPosts(loadedPosts);
       })
@@ -86,7 +90,40 @@ function CommunityPage({ userId }: CommunityPageProps) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [userId]);
+
+  async function handleToggleLike(postId: string) {
+    const post = posts.find((item) => item.id === postId);
+    if (!post || pendingLikePostIds.has(postId)) return;
+
+    setPendingLikePostIds((current) => new Set(current).add(postId));
+    setLikeError(null);
+    try {
+      if (post.isLikedByCurrentUser) {
+        await removeCommunityLike(postId);
+      } else {
+        await createCommunityLike(postId);
+      }
+
+      const isLikedByCurrentUser = !post.isLikedByCurrentUser;
+      const likeCount = Math.max(0, post.likeCount + (isLikedByCurrentUser ? 1 : -1));
+      setPosts((currentPosts) => currentPosts.map((item) =>
+        item.id === postId ? { ...item, likeCount, isLikedByCurrentUser } : item,
+      ));
+      setSelectedPost((currentPost) => currentPost?.id === postId
+        ? { ...currentPost, likeCount, isLikedByCurrentUser }
+        : currentPost,
+      );
+    } catch (error) {
+      setLikeError(getErrorMessage(error, "write"));
+    } finally {
+      setPendingLikePostIds((current) => {
+        const next = new Set(current);
+        next.delete(postId);
+        return next;
+      });
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -113,6 +150,9 @@ function CommunityPage({ userId }: CommunityPageProps) {
         userId={userId}
         onBack={() => setSelectedPost(null)}
         onCommentCountChange={handleCommentCountChange}
+        onToggleLike={handleToggleLike}
+        isLikeUpdating={pendingLikePostIds.has(selectedPost.id)}
+        likeError={likeError}
       />
     );
   }
@@ -155,6 +195,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
       </div>
 
       {loadError && <p className="community-error" role="alert">{loadError}</p>}
+      {likeError && <p className="community-error" role="alert">{likeError}</p>}
       {isLoading ? (
         <p className="community-empty" role="status">投稿を読み込んでいます…</p>
       ) : posts.length === 0 ? (
@@ -168,6 +209,16 @@ function CommunityPage({ userId }: CommunityPageProps) {
                 <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
               </div>
               <p className="community-post-content">{post.content}</p>
+              <button
+                type="button"
+                className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
+                onClick={() => void handleToggleLike(post.id)}
+                disabled={pendingLikePostIds.has(post.id)}
+                aria-pressed={post.isLikedByCurrentUser}
+                aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
+              >
+                {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
+              </button>
               <p className="community-post-comment-count">コメント {post.commentCount}件</p>
               <button
                 type="button"
@@ -191,9 +242,20 @@ type CommunityPostDetailProps = {
   userId: string | null;
   onBack: () => void;
   onCommentCountChange: (commentCount: number) => void;
+  onToggleLike: (postId: string) => void;
+  isLikeUpdating: boolean;
+  likeError: string | null;
 };
 
-function CommunityPostDetail({ post, userId, onBack, onCommentCountChange }: CommunityPostDetailProps) {
+function CommunityPostDetail({
+  post,
+  userId,
+  onBack,
+  onCommentCountChange,
+  onToggleLike,
+  isLikeUpdating,
+  likeError,
+}: CommunityPostDetailProps) {
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -250,6 +312,17 @@ function CommunityPostDetail({ post, userId, onBack, onCommentCountChange }: Com
           <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
         </div>
         <p className="community-post-content">{post.content}</p>
+        <button
+          type="button"
+          className={`community-like-button${post.isLikedByCurrentUser ? " is-liked" : ""}`}
+          onClick={() => onToggleLike(post.id)}
+          disabled={isLikeUpdating}
+          aria-pressed={post.isLikedByCurrentUser}
+          aria-label={post.isLikedByCurrentUser ? "いいねを解除" : "いいねする"}
+        >
+          {post.isLikedByCurrentUser ? "♥" : "♡"} いいね {post.likeCount}
+        </button>
+        {likeError && <p className="community-error" role="alert">{likeError}</p>}
       </article>
 
       <div className="community-feed-heading">

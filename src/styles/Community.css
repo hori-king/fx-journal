@@ -30,6 +30,14 @@
 .community-detail-page { gap: 16px; }
 .community-back-button { width: auto; justify-self: start; padding: 9px 13px; border: 1px solid #304257; background: #111c2a; color: #c4d2df; }
 .community-detail-post .community-post-content { font-size: 16px; }
+.community-like-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: auto; min-width: 126px; min-height: 44px; margin-top: 12px; padding: 9px 14px;
+  border: 1px solid #34465b; background: #111c2a; color: #c4d2df;
+}
+.community-like-button:hover { border-color: #526780; background: #172536; }
+.community-like-button.is-liked { border-color: rgba(251, 113, 133, .45); background: rgba(190, 24, 93, .14); color: #fb8299; }
+.community-like-button:disabled { cursor: wait; opacity: .6; }
 .community-comment-count { margin-left: 6px; color: #8da1b6; font-size: 13px; font-weight: 500; }
 .community-comment-composer { margin-bottom: 2px; }
 .community-comment-list { display: grid; gap: 10px; }
