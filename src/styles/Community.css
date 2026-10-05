@@ -25,6 +25,16 @@
 .community-post-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #8da1b6; font-size: 12px; }
 .community-author { color: #63c9e3; font-weight: 700; }
 .community-post-content { margin: 14px 0 0; color: #e5edf6; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.community-open-post { width: auto; margin-top: 14px; padding: 8px 12px; border: 1px solid #304257; background: #111c2a; color: #8de4fb; }
+.community-post-comment-count { margin: 12px 0 0; color: #8da1b6; font-size: 12px; }
+.community-detail-page { gap: 16px; }
+.community-back-button { width: auto; justify-self: start; padding: 9px 13px; border: 1px solid #304257; background: #111c2a; color: #c4d2df; }
+.community-detail-post .community-post-content { font-size: 16px; }
+.community-comment-count { margin-left: 6px; color: #8da1b6; font-size: 13px; font-weight: 500; }
+.community-comment-composer { margin-bottom: 2px; }
+.community-comment-list { display: grid; gap: 10px; }
+.community-comment-card { padding: 16px 18px; border: 1px solid #223246; border-radius: 12px; background: #0d1723; }
+.community-comment-card .community-post-content { margin-top: 10px; }
 .community-empty { margin: 0; padding: 28px 18px; border: 1px dashed #304257; border-radius: 12px; color: #94a7bb; text-align: center; }
 .community-error { margin: 0; color: #ff9098; line-height: 1.6; }
 
