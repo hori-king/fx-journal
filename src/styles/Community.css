@@ -1,0 +1,35 @@
+.community-page { display: grid; gap: 20px; }
+.community-heading h2, .community-feed-heading h2 { margin-bottom: 0; }
+.community-description { margin: 8px 0 0; color: #91a3b6; }
+.community-composer, .community-post-card {
+  padding: 20px;
+  border: 1px solid #223246;
+  border-radius: 14px;
+  background: #101a27;
+}
+.community-composer { display: grid; gap: 12px; }
+.community-composer label { color: #dce8f4; font-weight: 700; }
+.community-composer textarea {
+  width: 100%; min-height: 112px; resize: vertical; padding: 13px 14px;
+  border: 1px solid #304257; border-radius: 10px; background: #0a121d;
+  color: #edf4fb; line-height: 1.6;
+}
+.community-composer textarea::placeholder { color: #72869b; }
+.community-composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.community-composer-footer > span { color: #8497aa; font-size: 12px; }
+.community-composer-footer button { width: auto; min-width: 112px; background: #0b829e; }
+.community-composer-footer button:disabled { opacity: .55; }
+.community-feed-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.community-refresh { width: auto; padding: 8px 12px; border: 1px solid #304257; background: #111c2a; color: #c4d2df; }
+.community-post-list { display: grid; gap: 14px; }
+.community-post-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #8da1b6; font-size: 12px; }
+.community-author { color: #63c9e3; font-weight: 700; }
+.community-post-content { margin: 14px 0 0; color: #e5edf6; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.community-empty { margin: 0; padding: 28px 18px; border: 1px dashed #304257; border-radius: 12px; color: #94a7bb; text-align: center; }
+.community-error { margin: 0; color: #ff9098; line-height: 1.6; }
+
+@media (max-width: 700px) {
+  .community-composer, .community-post-card { padding: 16px; }
+  .community-composer-footer button { min-height: 44px; }
+  .community-post-meta { align-items: flex-start; flex-direction: column; gap: 4px; }
+}

@@ -9,6 +9,7 @@ import './styles/Theme.css'
 import './styles/ResponsiveEnhancements.css'
 import './styles/Auth.css'
 import './styles/ResponsiveOverrides.css'
+import './styles/Community.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

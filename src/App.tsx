@@ -21,6 +21,7 @@ import {
 import AuthForm from "./components/authForm";
 import { getCurrentSession, signOut } from "./services/authService";
 import { supabase } from "./lib/supabaseClient";
+import CommunityPage from "./components/CommunityPage";
 
 type AIAnalysis = {
   summary: string;
@@ -36,7 +37,7 @@ type SingleAIAnalysis = {
   improvements: string[];
 };
 
-type HomePage = "overview" | "analysis" | "trades";
+type HomePage = "overview" | "analysis" | "trades" | "community";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
 
 function formatMoney(value: number, currency: string) {
@@ -453,6 +454,7 @@ function App() {
                     ["overview", "ホーム", "⌂"],
                     ["analysis", "分析", "▥"],
                     ["trades", "取引", "≡"],
+                    ["community", "コミュニティ", "◎"],
                   ] as const).map(([page, label, icon]) => (
                     <button
                       key={page}
@@ -797,6 +799,7 @@ function App() {
                     ))}
                 </ul>
               )}
+
               {totalTradePages > 1 && (
                 <div className="trade-pagination" aria-label="取引履歴ページ">
                   <button
@@ -817,6 +820,10 @@ function App() {
                 </div>
               )}
                 </section>
+              )}
+
+              {!showForm && homePage === "community" && (
+                <CommunityPage userId={userId} />
               )}
 
               {showForm && (
