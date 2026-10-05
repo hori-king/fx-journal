@@ -108,11 +108,14 @@ body,
   background: #0b131e;
   color: #dce6f0;
 }
+.trade-search-input {
+  background: #f8fafc;
+}
 .trade-search-input input {
-  color: #38bdf8;
+  color: #111827;
 }
 .trade-search-input input::placeholder {
-  color: #687a8e;
+  color: #64748b;
 }
 .filter-buttons button:hover,
 .trade-search-reset:hover {
