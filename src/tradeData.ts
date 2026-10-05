@@ -63,7 +63,13 @@ export interface AnalyzeResult {
 
 export interface MethodAnalysis extends AnalyzeResult {
   method: string;
-  totalPips: number;
+}
+
+export type MoveUnit = "pips" | "points";
+
+export interface TradePriceMove {
+  value: number;
+  unit: MoveUnit;
 }
 
 export const trades: Trade[] = [];
@@ -77,6 +83,21 @@ export function getPipSize(symbol: string): number {
 
 export function calculatePips(symbol: string, entry: number, exit: number): number {
   return Math.abs(exit - entry) / getPipSize(symbol);
+}
+
+export function getMoveUnit(symbol: string): MoveUnit {
+  return findXMInstrument(symbol)?.moveUnit ?? "pips";
+}
+
+export function getTradePriceMove(trade: Pick<Trade, "symbol" | "direction" | "entry" | "exit">): TradePriceMove {
+  const priceDifference = trade.direction === "BUY" ? trade.exit - trade.entry : trade.entry - trade.exit;
+  return { value: priceDifference / getPipSize(trade.symbol), unit: getMoveUnit(trade.symbol) };
+}
+
+export function formatTradePriceMove(trade: Pick<Trade, "symbol" | "direction" | "entry" | "exit">): string {
+  const { value } = getTradePriceMove(trade);
+  const rounded = Math.abs(value) < 0.05 ? 0 : Number(value.toFixed(1));
+  return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("ja-JP", { maximumFractionDigits: 1 })}`;
 }
 
 export function parseMethodsFromText(text: string): string[] {
@@ -250,10 +271,6 @@ export function analyzeMethodPerformance(trades: Trade[]): MethodAnalysis[] {
     .map(([method, methodTrades]) => ({
       method,
       ...analyzeTrades(methodTrades),
-      totalPips: methodTrades.reduce((total, trade) => {
-        const sign = trade.result === "WIN" ? 1 : trade.result === "LOSS" ? -1 : 0;
-        return total + trade.pips * sign;
-      }, 0),
     }))
     .sort((a, b) => b.totalTrades - a.totalTrades || a.method.localeCompare(b.method, "ja"));
 }
@@ -353,6 +370,7 @@ export function analyzeWinRateByMethod(trades: Trade[]) {
 }
 
 export function createAIAnalysisData(trade: Trade) {
+  const priceMove = getTradePriceMove(trade);
   return {
     symbol: trade.symbol,
     direction: trade.direction,
@@ -365,7 +383,8 @@ export function createAIAnalysisData(trade: Trade) {
     leverage: trade.leverage ?? null,
     profit: trade.profit,
     profitCurrency: trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol),
-    pips: trade.pips,
+    priceMove: priceMove.value,
+    priceMoveUnit: priceMove.unit,
     rr: trade.rr,
     result: trade.result,
     reason: trade.reason,
@@ -388,7 +407,9 @@ export function createAIAnalysisDataset(trades: Trade[]) {
 
     methodAnalysis,
 
-    trades: trades.map((trade) => ({
+    trades: trades.map((trade) => {
+      const priceMove = getTradePriceMove(trade);
+      return ({
       symbol: trade.symbol,
       direction: trade.direction,
       entry: trade.entry,
@@ -402,12 +423,14 @@ export function createAIAnalysisDataset(trades: Trade[]) {
       stopLoss: trade.stopLoss,
       profit: trade.profit,
       profitCurrency: trade.profitCurrency ?? getInstrumentProfitCurrency(trade.symbol),
-      pips: trade.pips,
+      priceMove: priceMove.value,
+      priceMoveUnit: priceMove.unit,
       rr: trade.rr,
       result: trade.result,
       holdingTime: trade.holdingTime,
       entryTime: trade.entryTime,
       exitTime: trade.exitTime,
-    })),
+      });
+    }),
   };
 }

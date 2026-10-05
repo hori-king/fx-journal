@@ -1,4 +1,4 @@
-import { getTradeChartImages, type Trade } from "../tradeData";
+import { formatTradePriceMove, getMoveUnit, getTradeChartImages, type Trade } from "../tradeData";
 
 interface TradeCardProps {
   trade: Trade;
@@ -56,8 +56,8 @@ function TradeCard({ trade, onDelete, onSelect }: TradeCardProps) {
           <strong>{trade.timeframe}</strong>
         </div>
         <div>
-          <span>Pips</span>
-          <strong>{trade.pips.toFixed(1)}</strong>
+          <span>{getMoveUnit(trade.symbol)}</span>
+          <strong>{formatTradePriceMove(trade)}</strong>
         </div>
         <div>
           <span>レバレッジ</span>

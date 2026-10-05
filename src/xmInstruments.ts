@@ -5,6 +5,7 @@ export interface XMInstrument {
   pipSize: number;
   contractSize: number;
   profitCurrency: string;
+  moveUnit?: "pips" | "points";
   aliases?: string[];
 }
 
@@ -25,6 +26,7 @@ const fxInstruments: XMInstrument[] = fxPairs.map((symbol) => ({
   pipSize: symbol.endsWith("JPY") ? 0.01 : 0.0001,
   contractSize: 100_000,
   profitCurrency: symbol.slice(3),
+  moveUnit: "pips",
 }));
 
 const indexSpecs: Array<[string, string, string, string[]?]> = [
@@ -63,12 +65,13 @@ const indexInstruments: XMInstrument[] = indexSpecs.map(([symbol, name, currency
   pipSize: 1,
   contractSize: 1,
   profitCurrency: currency,
+  moveUnit: "points",
   aliases,
 }));
 
 const otherInstruments: XMInstrument[] = [
-  { symbol: "GOLD", name: "ゴールド / 米ドル", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", aliases: ["XAUUSD", "金"] },
-  { symbol: "GOLD24-7", name: "ゴールド24-7", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", aliases: ["金"] },
+  { symbol: "GOLD", name: "ゴールド / 米ドル", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", moveUnit: "pips", aliases: ["XAUUSD", "金"] },
+  { symbol: "GOLD24-7", name: "ゴールド24-7", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", moveUnit: "pips", aliases: ["金"] },
   { symbol: "XAUEUR", name: "ゴールド / ユーロ", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "EUR", aliases: ["金"] },
   { symbol: "XAUJPY", name: "ゴールド / 日本円", category: "貴金属", pipSize: 1, contractSize: 100, profitCurrency: "JPY", aliases: ["金"] },
   { symbol: "XAUCNH", name: "ゴールド / 人民元", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "CNH", aliases: ["金"] },

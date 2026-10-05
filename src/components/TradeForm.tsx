@@ -3,6 +3,7 @@ import {
   addTrade,
   getInstrumentProfitCurrency,
   getPipSize,
+  getMoveUnit,
   parseMethodsFromText,
   searchXMInstruments,
   type Direction,
@@ -445,7 +446,7 @@ function TradeForm({
           </div>
 
           <div className="form-field pip-size-note">
-            <label>この銘柄の1 pip</label>
+            <label>この銘柄の1 {getMoveUnit(symbol) === "points" ? "point" : "pip"}</label>
             <output>{getPipSize(symbol).toLocaleString()}（価格単位）</output>
           </div>
 

@@ -5,6 +5,7 @@ import {
   analyzeWinRateBySymbol,
   analyzeMethodPerformance,
   createAIAnalysisDataset,
+  getTradePriceMove,
   type Trade
 } from "./tradeData";
 import DashboardCard from "./components/DashboardCard";
@@ -286,6 +287,7 @@ function App() {
   async function analyzeSingleTrade(trade: Trade) {
     setAiError(null);
     setIsAnalyzing(true);
+    const priceMove = getTradePriceMove(trade);
 
     try {
       const response = await fetch(
@@ -308,7 +310,8 @@ function App() {
             stopLoss: trade.stopLoss,
             profit: trade.profit,
             profitCurrency: trade.profitCurrency ?? "JPY",
-            pips: trade.pips,
+            priceMove: priceMove.value,
+            priceMoveUnit: priceMove.unit,
             rr: trade.rr,
             result: trade.result,
             holdingTime: trade.holdingTime,
@@ -591,7 +594,6 @@ function App() {
                       </div>
                       <div className="method-analysis-totals">
                         <p><span>総損益</span><strong>{formatSignedProfitGroups(item.profitByCurrency)}</strong></p>
-                        <p><span>総pips</span><strong>{item.totalPips > 0 ? "+" : ""}{item.totalPips.toLocaleString("ja-JP", { maximumFractionDigits: 1 })} pips</strong></p>
                       </div>
                     </div>
                   ))}
