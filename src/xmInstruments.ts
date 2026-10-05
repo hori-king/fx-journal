@@ -67,8 +67,8 @@ const indexInstruments: XMInstrument[] = indexSpecs.map(([symbol, name, currency
 }));
 
 const otherInstruments: XMInstrument[] = [
-  { symbol: "GOLD", name: "ゴールド / 米ドル", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "USD", aliases: ["XAUUSD", "金"] },
-  { symbol: "GOLD24-7", name: "ゴールド24-7", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "USD", aliases: ["金"] },
+  { symbol: "GOLD", name: "ゴールド / 米ドル", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", aliases: ["XAUUSD", "金"] },
+  { symbol: "GOLD24-7", name: "ゴールド24-7", category: "貴金属", pipSize: 0.1, contractSize: 100, profitCurrency: "USD", aliases: ["金"] },
   { symbol: "XAUEUR", name: "ゴールド / ユーロ", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "EUR", aliases: ["金"] },
   { symbol: "XAUJPY", name: "ゴールド / 日本円", category: "貴金属", pipSize: 1, contractSize: 100, profitCurrency: "JPY", aliases: ["金"] },
   { symbol: "XAUCNH", name: "ゴールド / 人民元", category: "貴金属", pipSize: 0.01, contractSize: 100, profitCurrency: "CNH", aliases: ["金"] },

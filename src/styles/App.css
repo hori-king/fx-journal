@@ -375,6 +375,8 @@ button:disabled {
   border-radius: 10px;
 }
 
+.trade-card-image-gallery .trade-card-image { max-width: 100%; margin: 0; }
+
 .trade-card-actions {
   display: flex;
   gap: 10px;

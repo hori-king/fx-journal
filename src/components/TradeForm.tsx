@@ -54,7 +54,10 @@ function TradeForm({
   );
   const [createdMethodOptions, setCreatedMethodOptions] = useState<string[]>([]);
   const [newMethod, setNewMethod] = useState("");
-  const [chartImage, setChartImage] = useState<File | null>(null);
+  const [chartImages, setChartImages] = useState<string[]>(() =>
+    editTrade?.chartImages?.length ? editTrade.chartImages : editTrade?.chartImage ? [editTrade.chartImage] : []
+  );
+  const [chartImagesLoading, setChartImagesLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,14 +105,34 @@ function TradeForm({
       const reader = new FileReader();
 
       reader.onload = () => {
+        URL.revokeObjectURL(image.src);
         resolve(reader.result as string);
       };
 
       reader.onerror = () => {
+        URL.revokeObjectURL(image.src);
         reject(new Error("画像の読み込みに失敗しました"));
       };
 
-      reader.readAsDataURL(file);
+      const image = new Image();
+      image.onload = () => {
+        const maxDimension = 1800;
+        const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(image.src);
+          if (!blob) {
+            reject(new Error("画像の圧縮に失敗しました"));
+            return;
+          }
+          reader.readAsDataURL(blob);
+        }, "image/jpeg", 0.82);
+      };
+      image.onerror = () => reject(new Error("画像を読み込めませんでした"));
+      image.src = URL.createObjectURL(file);
     });
   }
 
@@ -189,15 +212,13 @@ function TradeForm({
       return;
     }
 
-    let chartImageUrl = editTrade?.chartImage ?? "";
-
-    try {
-      if (chartImage) {
-        chartImageUrl = await fileToDataUrl(chartImage);
-      }
-    } catch (error) {
-      alert("画像の読み込みに失敗しました。");
-      console.log(error);
+    if (chartImages.length > 5) {
+      alert("チャート画像は5枚まで登録できます。");
+      setSaving(false);
+      return;
+    }
+    if (chartImagesLoading) {
+      alert("画像の読み込みが終わってから保存してください。");
       setSaving(false);
       return;
     }
@@ -217,7 +238,8 @@ function TradeForm({
       methods: selectedMethods,
       takeProfit: Number(tp),
       stopLoss: Number(sl),
-      chartImage: chartImageUrl,
+      chartImage: chartImages[0] ?? "",
+      chartImages,
       entryTime: entryTime,
       exitTime: exitTime,
     });
@@ -245,7 +267,7 @@ function TradeForm({
     setEntryTime("");
     setExitTime("");
     setTimeframe("1時間足");
-    setChartImage(null);
+    setChartImages([]);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -574,42 +596,50 @@ function TradeForm({
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
+              disabled={chartImagesLoading || saving}
               onChange={(e) => {
-                const file = e.target.files?.[0] ?? null;
-                setChartImage(file);
+                const files = Array.from(e.target.files ?? []);
+                if (chartImages.length + files.length > 5) {
+                  alert("チャート画像は合計5枚まで登録できます。");
+                  e.target.value = "";
+                  return;
+                }
+                if (files.some((file) => file.size > 15 * 1024 * 1024)) {
+                  alert("画像1枚あたりのサイズは15MB以下にしてください。");
+                  e.target.value = "";
+                  return;
+                }
                 setSaved(false);
+                if (files.length === 0) return;
+                setChartImagesLoading(true);
+                void Promise.all(files.map(fileToDataUrl))
+                  .then((images) => setChartImages((current) => [...current, ...images].slice(0, 5)))
+                  .catch(() => alert("画像の読み込みに失敗しました。別の画像をお試しください。"))
+                  .finally(() => setChartImagesLoading(false));
               }}
             />
 
             <span className="chart-upload-icon">＋</span>
 
-            <strong>チャート画像を選択</strong>
+            <strong>チャート画像を選択（最大5枚）</strong>
 
             <span>
-              JPG・PNGなどの画像をアップロード
+              {chartImagesLoading ? "画像を読み込み中…" : "JPG・PNGなどの画像をアップロード"}
             </span>
           </label>
 
-          {chartImage && (
-            <div className="chart-preview">
-              <img
-                src={URL.createObjectURL(chartImage)}
-                alt="チャート画像プレビュー"
-              />
-
-              <button
-                type="button"
-                className="chart-remove-button"
-                onClick={() => {
-                  setChartImage(null);
-
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-              >
-                画像を削除
-              </button>
+          {chartImages.length > 0 && (
+            <div className="chart-preview-grid">
+              {chartImages.map((image, index) => (
+                <div className="chart-preview" key={`${index}-${image.slice(0, 40)}`}>
+                  <img src={image} alt={`チャート画像 ${index + 1}`} />
+                  <button type="button" className="chart-remove-button" onClick={() => {
+                    setChartImages((current) => current.filter((_, imageIndex) => imageIndex !== index));
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}>画像を削除</button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -627,7 +657,7 @@ function TradeForm({
         <button
           className="form-save-button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || chartImagesLoading}
         >
           {saving ? "保存中..." : editTrade ? "変更を保存" : "取引を保存"}
         </button>

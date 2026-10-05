@@ -31,6 +31,7 @@ export interface TradeInput {
   takeProfit: number;
   stopLoss: number;
   chartImage: string;
+  chartImages?: string[];
   entryTime: string;
   exitTime: string;
 }
@@ -161,9 +162,15 @@ export function createTrade(input: TradeInput): Trade {
     holdingTime,
     result,
     chartImage,
+    chartImages: input.chartImages?.length ? input.chartImages : chartImage ? [chartImage] : [],
     entryTime,
     exitTime,
   };
+}
+
+export function getTradeChartImages(trade: Pick<Trade, "chartImage" | "chartImages">): string[] {
+  if (trade.chartImages?.length) return trade.chartImages;
+  return trade.chartImage ? [trade.chartImage] : [];
 }
 
 export function addTrade(input: TradeInput): Trade {

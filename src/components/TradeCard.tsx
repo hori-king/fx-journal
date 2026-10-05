@@ -1,4 +1,4 @@
-import type { Trade } from "../tradeData";
+import { getTradeChartImages, type Trade } from "../tradeData";
 
 interface TradeCardProps {
   trade: Trade;
@@ -70,12 +70,12 @@ function TradeCard({ trade, onDelete, onSelect }: TradeCardProps) {
         <p>{trade.reason}</p>
       </div>
 
-      {trade.chartImage && (
-        <img
-          className="trade-card-image"
-          src={trade.chartImage}
-          alt="チャート画像"
-        />
+      {getTradeChartImages(trade).length > 0 && (
+        <div className="trade-card-image-gallery">
+          {getTradeChartImages(trade).map((image, index) => (
+            <img key={index} className="trade-card-image" src={image} alt={`チャート画像 ${index + 1}`} />
+          ))}
+        </div>
       )}
 
       <div className="trade-card-actions">

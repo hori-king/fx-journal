@@ -1,4 +1,4 @@
-import { calculatePips, getInstrumentProfitCurrency, parseMethodsFromText, type Trade } from "../tradeData";
+import { calculatePips, getInstrumentProfitCurrency, getTradeChartImages, parseMethodsFromText, type Trade } from "../tradeData";
 import { supabase } from "../lib/supabaseClient";
 
 export async function loadTrades(): Promise<Trade[]> {
@@ -13,7 +13,9 @@ export async function loadTrades(): Promise<Trade[]> {
   }
 
   return data.map(
-    (trade): Trade => ({
+    (trade): Trade => {
+      const chartImages = deserializeChartImages(trade.chart_image);
+      return ({
       id: trade.id,
       userId: trade.user_id,
       symbol: trade.symbol,
@@ -29,7 +31,8 @@ export async function loadTrades(): Promise<Trade[]> {
       methods: parseMethodsFromText(trade.reason ?? ""),
       takeProfit: trade.take_profit,
       stopLoss: trade.stop_loss,
-      chartImage: trade.chart_image,
+      chartImage: chartImages[0] ?? "",
+      chartImages,
       entryTime: trade.entry_time,
       exitTime: trade.exit_time,
       profit: trade.profit,
@@ -38,7 +41,8 @@ export async function loadTrades(): Promise<Trade[]> {
       date: trade.date,
       holdingTime: trade.holding_time,
       result: trade.result as Trade["result"],
-    }),
+      });
+    },
   );
 }
 
@@ -58,7 +62,7 @@ export async function insertTrade(trade: Trade): Promise<boolean> {
     reason: trade.reason,
     take_profit: trade.takeProfit,
     stop_loss: trade.stopLoss,
-    chart_image: trade.chartImage,
+    chart_image: serializeChartImages(trade),
     entry_time: trade.entryTime,
     exit_time: trade.exitTime,
     profit: trade.profit,
@@ -93,7 +97,7 @@ export async function updateTrade(trade: Trade): Promise<boolean> {
       reason: trade.reason,
       take_profit: trade.takeProfit,
       stop_loss: trade.stopLoss,
-      chart_image: trade.chartImage,
+      chart_image: serializeChartImages(trade),
       entry_time: trade.entryTime,
       exit_time: trade.exitTime,
       profit: trade.profit,
@@ -111,6 +115,25 @@ export async function updateTrade(trade: Trade): Promise<boolean> {
   }
 
   return true;
+}
+
+function serializeChartImages(trade: Trade): string {
+  const images = getTradeChartImages(trade);
+  if (images.length > 1) return JSON.stringify(images);
+  return images[0] ?? "";
+}
+
+function deserializeChartImages(value: unknown): string[] {
+  if (typeof value !== "string" || value.length === 0) return [];
+  if (value.trimStart().startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every((image) => typeof image === "string")) return parsed;
+    } catch {
+      // 古い単一画像データはそのまま扱う。
+    }
+  }
+  return [value];
 }
 
 export async function deleteTrade(id: string): Promise<boolean> {

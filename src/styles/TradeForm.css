@@ -550,6 +550,16 @@
   margin-top: 14px;
 }
 
+.chart-preview-grid,
+.detail-chart-gallery,
+.trade-card-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 14px;
+}
+
+.chart-preview-grid .chart-preview { min-width: 0; margin-top: 0; }
+
 .chart-preview img {
   display: block;
   width: 100%;

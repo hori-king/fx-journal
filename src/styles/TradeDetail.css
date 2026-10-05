@@ -186,6 +186,9 @@
   border-radius: 10px;
 }
 
+.detail-chart-gallery { align-items: start; }
+.detail-chart-gallery img { max-width: 100%; }
+
 /* 根拠 */
 .detail-reason {
   padding: 16px;

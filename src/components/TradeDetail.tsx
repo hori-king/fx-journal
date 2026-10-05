@@ -1,4 +1,4 @@
-import type { Trade } from "../tradeData";
+import { getTradeChartImages, type Trade } from "../tradeData";
 
 interface TradeDetailProps {
   trade: Trade;
@@ -95,7 +95,7 @@ function TradeDetail({
         {isAnalyzing ? "AI分析中..." : "🤖 この取引をAI分析"}
       </button>
 
-      {trade.chartImage && (
+      {getTradeChartImages(trade).length > 0 && (
         <section className="detail-section">
 
           <div className="detail-section-header">
@@ -103,10 +103,11 @@ function TradeDetail({
           </div>
 
           <div className="detail-chart">
-            <img
-              src={trade.chartImage}
-              alt="チャート画像"
-            />
+            <div className="detail-chart-gallery">
+              {getTradeChartImages(trade).map((image, index) => (
+                <img key={index} src={image} alt={`チャート画像 ${index + 1}`} />
+              ))}
+            </div>
           </div>
 
         </section>
