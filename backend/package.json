@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts"
+    "dev": "tsx watch src/server.ts"
   },
   "keywords": [],
   "author": "",

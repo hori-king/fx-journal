@@ -18,7 +18,6 @@ import {
   deleteTrade
 } from "./services/tradeService";
 import AuthForm from "./components/authForm";
-import MT5SyncPanel from "./components/MT5SyncPanel";
 import { getCurrentSession, signOut } from "./services/authService";
 import { supabase } from "./lib/supabaseClient";
 
@@ -149,13 +148,6 @@ function App() {
     }
 
     fetchTrades();
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    const reloadTrades = () => { void loadTrades().then(setTradeList).catch((error: unknown) => console.error("同期後の取引再読み込みに失敗しました:", error)); };
-    window.addEventListener("fx-journal-trades-updated", reloadTrades);
-    return () => window.removeEventListener("fx-journal-trades-updated", reloadTrades);
   }, [userId]);
 
   useEffect(() => {
@@ -398,10 +390,7 @@ function App() {
                 editTrade={selectedTrade}
                 onBack={() => setIsEditing(false)}
                 onAddTrade={async (newTrade) => {
-                  const tradeToSave = selectedTrade.source === "mt5"
-                    ? { ...selectedTrade, reason: newTrade.reason, methods: newTrade.methods }
-                    : newTrade;
-                  const success = await updateTrade(tradeToSave);
+                  const success = await updateTrade(newTrade);
 
                   if (!success) {
                     alert("取引データの更新に失敗しました。");
@@ -410,10 +399,10 @@ function App() {
 
                   setTradeList((currentTrades) =>
                     currentTrades.map((trade) =>
-                      trade.id === tradeToSave.id ? tradeToSave : trade)
+                      trade.id === newTrade.id ? newTrade : trade)
                   );
 
-                  setSelectedTrade(tradeToSave);
+                  setSelectedTrade(newTrade);
                   setIsEditing(false);
                   setAiAnalysis(null);
                   setAiError(null);
@@ -652,7 +641,6 @@ function App() {
                   </div>
 
               <div className="trade-search">
-                <MT5SyncPanel />
                 <div className="trade-search-header">
                   <div>
                     <p className="trade-search-subtitle">TRADE HISTORY</p>

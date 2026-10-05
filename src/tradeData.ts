@@ -1,8 +1,6 @@
 import { findXMInstrument, xmSymbols } from "./xmInstruments";
-import { calculatePips, calculateProfit } from "../shared/tradeMath";
 
 export { findXMInstrument, searchXMInstruments, xmInstruments } from "./xmInstruments";
-export { calculatePips, calculateProfit, getPipSize } from "../shared/tradeMath";
 
 export type Direction = "BUY" | "SELL";
 export type Result = "WIN" | "LOSS" | "DRAW";
@@ -48,14 +46,6 @@ export interface Trade extends Omit<TradeInput, "leverage" | "profitCurrency" | 
   date: string;
   holdingTime: number;
   result: Result;
-  source?: "manual" | "mt5";
-  mt5Account?: string | null;
-  mt5DealTicket?: string | null;
-  mt5PositionId?: string | null;
-  mt5Profit?: number;
-  commission?: number;
-  swap?: number;
-  fee?: number;
 }
 
 export interface AnalyzeResult {
@@ -79,6 +69,15 @@ export const trades: Trade[] = [];
 
 export const symbols = [...xmSymbols, "NIKKEI"];
 
+export function getPipSize(symbol: string): number {
+  if (symbol.trim().toUpperCase() === "NIKKEI") return 1;
+  return findXMInstrument(symbol)?.pipSize ?? 0.0001;
+}
+
+export function calculatePips(symbol: string, entry: number, exit: number): number {
+  return Math.abs(exit - entry) / getPipSize(symbol);
+}
+
 export function parseMethodsFromText(text: string): string[] {
   return [...new Set(
     text
@@ -94,6 +93,20 @@ export function getInstrumentProfitCurrency(symbol: string): string {
   if (instrument) return instrument.profitCurrency;
   if (/^[A-Z]{6}$/.test(symbol)) return symbol.slice(3).toUpperCase();
   return "USD";
+}
+
+export function calculateProfit(
+  symbol: string,
+  direction: Direction,
+  entry: number,
+  exit: number,
+  lot: number,
+  conversionRate: number,
+): number {
+  const instrument = findXMInstrument(symbol);
+  const contractSize = instrument?.contractSize ?? (/^[A-Z]{6}$/.test(symbol) ? 100_000 : 1);
+  const priceDifference = direction === "BUY" ? exit - entry : entry - exit;
+  return priceDifference * lot * contractSize * conversionRate;
 }
 
 export function createTrade(input: TradeInput): Trade {

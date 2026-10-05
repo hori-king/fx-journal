@@ -38,14 +38,6 @@ export async function loadTrades(): Promise<Trade[]> {
       date: trade.date,
       holdingTime: trade.holding_time,
       result: trade.result as Trade["result"],
-      source: trade.source === "mt5" ? "mt5" : "manual",
-      mt5Account: trade.mt5_account ?? null,
-      mt5DealTicket: trade.mt5_deal_ticket ?? null,
-      mt5PositionId: trade.mt5_position_id ?? null,
-      mt5Profit: trade.mt5_profit ?? undefined,
-      commission: trade.commission ?? undefined,
-      swap: trade.swap ?? undefined,
-      fee: trade.fee ?? undefined,
     }),
   );
 }

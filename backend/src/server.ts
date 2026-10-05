@@ -2,11 +2,10 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import "dotenv/config";
-import { registerMT5Routes } from "./mt5.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json());
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,8 +16,6 @@ app.get("/", (req, res) => {
     message: "AI分析バックエンドが起動しています",
   });
 });
-
-registerMT5Routes(app);
 
 app.post("/api/ai-analysis", async (req, res) => {
   try {
