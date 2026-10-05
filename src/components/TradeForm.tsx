@@ -3,6 +3,7 @@ import {
   addTrade,
   getInstrumentProfitCurrency,
   getPipSize,
+  parseMethodsFromText,
   searchXMInstruments,
   type Direction,
   type Timeframe,
@@ -12,6 +13,7 @@ import {
 interface TradeFormProps {
   userId: string;
   accountCurrency: string;
+  methodOptions: string[];
   onAddTrade: (trade: Trade) => void;
   onBack: () => void;
   editTrade?: Trade;
@@ -20,6 +22,7 @@ interface TradeFormProps {
 function TradeForm({
   userId,
   accountCurrency,
+  methodOptions,
   onAddTrade,
   onBack,
   editTrade,
@@ -40,7 +43,11 @@ function TradeForm({
   const [tp, setTp] = useState(editTrade?.takeProfit.toString() ?? "");
   const [sl, setSl] = useState(editTrade?.stopLoss.toString() ?? "");
 
-  const [reason, setReason] = useState(editTrade?.reason ?? "");
+  const [selectedMethods, setSelectedMethods] = useState<string[]>(() =>
+    editTrade?.methods?.length ? editTrade.methods : parseMethodsFromText(editTrade?.reason ?? "")
+  );
+  const [createdMethodOptions, setCreatedMethodOptions] = useState<string[]>([]);
+  const [newMethod, setNewMethod] = useState("");
   const [chartImage, setChartImage] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +66,31 @@ function TradeForm({
   const nativeProfitCurrency = getInstrumentProfitCurrency(symbol);
   const tradeProfitCurrency = editTrade?.profitCurrency ?? accountCurrency;
   const requiresConversion = Boolean(symbol) && nativeProfitCurrency !== tradeProfitCurrency;
+  const availableMethods = [...new Set([
+    "水平線",
+    "逆張り",
+    "包み足",
+    "ゴールデンクロス",
+    ...methodOptions,
+    ...createdMethodOptions,
+    ...selectedMethods,
+  ])].sort((a, b) => a.localeCompare(b, "ja"));
+
+  function toggleMethod(method: string) {
+    setSelectedMethods((current) =>
+      current.includes(method)
+        ? current.filter((item) => item !== method)
+        : [...current, method]
+    );
+  }
+
+  function addCustomMethod() {
+    const methodsToAdd = parseMethodsFromText(newMethod);
+    if (methodsToAdd.length === 0) return;
+    setCreatedMethodOptions((current) => [...new Set([...current, ...methodsToAdd])]);
+    setSelectedMethods((current) => [...new Set([...current, ...methodsToAdd])]);
+    setNewMethod("");
+  }
 
   function fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -88,11 +120,11 @@ function TradeForm({
       (requiresConversion && conversionRate === "") ||
       tp === "" ||
       sl === "" ||
-      reason === "" ||
+      selectedMethods.length === 0 ||
       entryTime === "" ||
       exitTime === ""
     ) {
-      alert("すべての項目を入力してください。");
+      alert(selectedMethods.length === 0 ? "手法を1つ以上選択してください。" : "すべての項目を入力してください。");
       setSaving(false);
       return;
     }
@@ -176,8 +208,8 @@ function TradeForm({
       profitCurrency: tradeProfitCurrency,
       conversionRate: closingConversionRate,
       timeframe: timeframe,
-      reason: reason,
-      methods: editTrade?.methods ?? [],
+      reason: selectedMethods.join("＋"),
+      methods: selectedMethods,
       takeProfit: Number(tp),
       stopLoss: Number(sl),
       chartImage: chartImageUrl,
@@ -203,7 +235,8 @@ function TradeForm({
     setConversionRate("");
     setTp("");
     setSl("");
-    setReason("");
+    setSelectedMethods([]);
+    setNewMethod("");
     setEntryTime("");
     setExitTime("");
     setTimeframe("1時間足");
@@ -477,14 +510,43 @@ function TradeForm({
 
         <div className="form-field">
           <label>手法・根拠</label>
-
-          <input
-            type="text"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="例：水平線＋包み足"
-          />
-          <small>「＋」「,」「、」「・」などで区切ると、手法別に集計されます。</small>
+          <div className="method-picker" role="group" aria-label="取引手法">
+            <div className="method-picker-options">
+              {availableMethods.map((method) => {
+                const isSelected = selectedMethods.includes(method);
+                return (
+                  <button
+                    type="button"
+                    key={method}
+                    className={`method-picker-option${isSelected ? " selected" : ""}`}
+                    aria-pressed={isSelected}
+                    onClick={() => toggleMethod(method)}
+                  >
+                    {method}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="method-picker-custom">
+              <input
+                type="text"
+                value={newMethod}
+                onChange={(event) => setNewMethod(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addCustomMethod();
+                  }
+                }}
+                placeholder="新しい手法を入力"
+                aria-label="新しい手法を入力"
+              />
+              <button type="button" onClick={addCustomMethod} disabled={newMethod.trim() === ""}>
+                手法を追加
+              </button>
+            </div>
+            <small>複数選択できます。追加した手法は次回以降の選択肢にも表示されます。</small>
+          </div>
         </div>
 
         <div className="chart-image-field">

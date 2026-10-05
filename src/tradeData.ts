@@ -124,6 +124,8 @@ export function createTrade(input: TradeInput): Trade {
     entryTime,
     exitTime,
   } = input;
+  const selectedMethods = parseMethodsFromText(input.methods.join("＋"));
+  const methods = selectedMethods.length > 0 ? selectedMethods : parseMethodsFromText(reason);
   const profit = calculateProfit(
     symbol,
     direction,
@@ -150,7 +152,7 @@ export function createTrade(input: TradeInput): Trade {
     profit,
     timeframe,
     reason,
-    methods: parseMethodsFromText(reason),
+    methods,
     pips,
     rr,
     date,

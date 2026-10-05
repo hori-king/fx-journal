@@ -150,6 +150,7 @@ function App() {
   }, []);
 
   const [tradeSearch, setTradeSearch] = useState("");
+  const [methodSearch, setMethodSearch] = useState("");
   const [directionFilter, setDirectionFilter] = useState<"ALL" | "BUY" | "SELL">("ALL");
   const [resultFilter, setResultFilter] = useState<"ALL" | "WIN" | "LOSS" | "DRAW">("ALL");
   const [startDate, setStartDate] = useState("");
@@ -159,6 +160,10 @@ function App() {
   const directionAnalysis = analyzeWinRateByDirection(tradeList);
   const symbolAnalysis = analyzeWinRateBySymbol(tradeList);
   const methodPerformance = analyzeMethodPerformance(tradeList);
+  const availableMethods = [...new Set(tradeList.flatMap((trade) => trade.methods ?? []))];
+  const filteredMethodPerformance = methodPerformance.filter((item) =>
+    item.method.toLocaleLowerCase("ja").includes(methodSearch.trim().toLocaleLowerCase("ja"))
+  );
   const filteredTrades = tradeList.filter((trade) => {
     const symbolMatch = trade.symbol.toLowerCase().includes(tradeSearch.toLowerCase());
     const directionMatch = directionFilter === "ALL" || trade.direction === directionFilter;
@@ -332,6 +337,7 @@ function App() {
               <TradeForm
                 userId={userId!}
                 accountCurrency={displayCurrency}
+                methodOptions={availableMethods}
                 editTrade={selectedTrade}
                 onBack={() => setIsEditing(false)}
                 onAddTrade={async (newTrade) => {
@@ -506,11 +512,24 @@ function App() {
 
               <h2>手法別の成績</h2>
 
-              {methodPerformance.length === 0 ? (
-                <p className="method-analysis-empty">取引データがありません。</p>
+              <div className="method-analysis-search">
+                <label htmlFor="method-analysis-search">手法を検索</label>
+                <input
+                  id="method-analysis-search"
+                  type="search"
+                  value={methodSearch}
+                  onChange={(event) => setMethodSearch(event.target.value)}
+                  placeholder="手法名を入力"
+                />
+              </div>
+
+              {filteredMethodPerformance.length === 0 ? (
+                <p className="method-analysis-empty">
+                  {methodPerformance.length === 0 ? "取引データがありません。" : "一致する手法がありません。"}
+                </p>
               ) : (
                 <div className="analysis-list method-analysis-list">
-                  {methodPerformance.map((item) => (
+                  {filteredMethodPerformance.map((item) => (
                     <div className="analysis-card method-analysis-card" key={item.method}>
                       <h3>{item.method}</h3>
                       <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
@@ -753,6 +772,7 @@ function App() {
                 <TradeForm
                   userId={userId!}
                   accountCurrency={displayCurrency}
+                  methodOptions={availableMethods}
                   onBack={() => setShowForm(false)}
                   onAddTrade={async (newTrade) => {
                     const success = await insertTrade(newTrade);

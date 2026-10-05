@@ -120,7 +120,7 @@ body {
   font-size: 25px !important;
   font-variant-numeric: tabular-nums;
 }
-.method-analysis-list {
+.analysis-list.method-analysis-list {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }
 .method-analysis-card h3 {
@@ -166,6 +166,66 @@ body {
 .method-analysis-empty {
   margin: 0 0 34px;
   color: var(--muted);
+}
+.method-analysis-search {
+  display: grid;
+  gap: 7px;
+  max-width: 420px;
+  margin: 0 0 14px;
+}
+.method-analysis-search label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.method-analysis-search input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-inset);
+  color: #e5edf6;
+}
+.method-picker {
+  display: grid;
+  gap: 10px;
+}
+.method-picker-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.method-picker-option {
+  width: auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #29394a;
+  background: #0b131e;
+  color: #b8c6d6;
+}
+.method-picker-option.selected {
+  border-color: #0e7490;
+  background: rgba(14, 116, 144, .2);
+  color: #8de4fb;
+}
+.method-picker-custom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.method-picker-custom button {
+  width: auto;
+  min-height: 42px;
+  background: #0e7490;
+  color: #ecfeff;
+  white-space: nowrap;
+}
+.method-picker-custom button:disabled {
+  opacity: .5;
+}
+.method-picker > small {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .trade-search {
