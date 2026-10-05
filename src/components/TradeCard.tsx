@@ -24,6 +24,7 @@ function TradeCard({ trade, onDelete, onSelect }: TradeCardProps) {
           <span className={`result-badge ${trade.result.toLowerCase()}`}>
             {trade.result}
           </span>
+          {trade.source === "mt5" && <span className="mt5-source-badge">MT5</span>}
         </div>
       </div>
 

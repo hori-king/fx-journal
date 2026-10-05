@@ -693,3 +693,20 @@ img {
     height: auto;
   }
 }
+.mt5-sync-panel { display: grid; gap: 14px; margin: 0 0 24px; padding: 20px; border: 1px solid #243247; border-radius: 14px; background: #0c1420; }
+.mt5-sync-panel h3 { margin: 4px 0; font-size: 18px; }
+.mt5-sync-panel p { margin: 5px 0 0; color: #95a8c2; }
+.mt5-sync-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.mt5-sync-actions button, .mt5-token button { border: 1px solid #28415a; border-radius: 8px; background: #142131; color: #e7f2ff; padding: 10px 14px; cursor: pointer; }
+.mt5-sync-actions button:last-child { background: #0785a2; border-color: #0785a2; }
+.mt5-sync-actions button:disabled { opacity: .6; cursor: wait; }
+.mt5-token { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 12px; border: 1px solid #785f2b; border-radius: 8px; background: #211b10; }
+.mt5-token strong { grid-column: 1 / -1; font-size: 13px; }
+.mt5-token code { overflow-wrap: anywhere; color: #ffe19a; }
+.mt5-sync-message { color: #7dd8f0 !important; }
+.mt5-sync-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.mt5-sync-summary div { padding: 10px; border-radius: 8px; background: #121d2b; }
+.mt5-sync-summary dt { color: #8fa5c0; font-size: 12px; }
+.mt5-sync-summary dd { margin: 4px 0 0; font-size: 18px; font-weight: 700; }
+.mt5-source-badge { border-radius: 999px; background: #153b4c; color: #62d8fa; padding: 4px 9px; font-size: 11px; font-weight: 700; }
+@media (max-width: 640px) { .mt5-sync-panel { padding: 15px; } .mt5-sync-actions { display: grid; grid-template-columns: 1fr; } .mt5-sync-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

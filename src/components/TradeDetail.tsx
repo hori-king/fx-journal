@@ -167,6 +167,16 @@ function TradeDetail({
             <strong>{trade.lot}</strong>
           </div>
 
+          {trade.source === "mt5" && <>
+            <div className="detail-item"><span>データ元</span><strong>MT5</strong></div>
+            <div className="detail-item"><span>MT5取引ID</span><strong>{trade.mt5DealTicket}</strong></div>
+            <div className="detail-item"><span>ポジションID</span><strong>{trade.mt5PositionId}</strong></div>
+            <div className="detail-item"><span>MT5損益（手数料等控除前）</span><strong>{trade.mt5Profit} {trade.profitCurrency}</strong></div>
+            <div className="detail-item"><span>手数料</span><strong>{trade.commission} {trade.profitCurrency}</strong></div>
+            <div className="detail-item"><span>スワップ</span><strong>{trade.swap} {trade.profitCurrency}</strong></div>
+            <div className="detail-item"><span>その他費用</span><strong>{trade.fee} {trade.profitCurrency}</strong></div>
+          </>}
+
           <div className="detail-item">
             <span>レバレッジ</span>
             <strong>{trade.leverage ? `${trade.leverage}倍` : "未記録"}</strong>
