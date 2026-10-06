@@ -10,6 +10,7 @@ import './styles/ResponsiveEnhancements.css'
 import './styles/Auth.css'
 import './styles/ResponsiveOverrides.css'
 import './styles/Community.css'
+import './styles/Notifications.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

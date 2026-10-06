@@ -21,6 +21,8 @@ import {
 
 type CommunityPageProps = {
   userId: string | null;
+  openPostId: string | null;
+  onOpenPostHandled: () => void;
 };
 
 function getErrorMessage(error: unknown, action: "read" | "write" | "delete"): string {
@@ -54,11 +56,15 @@ function formatPostDate(value: string): string {
   }).format(date);
 }
 
-function CommunityPage({ userId }: CommunityPageProps) {
+function CommunityPage({ userId, openPostId, onOpenPostHandled }: CommunityPageProps) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
+  const [manuallySelectedPost, setManuallySelectedPost] = useState<CommunityPost | null>(null);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const requestedPost = openPostId && !isLoading
+    ? posts.find((post) => post.id === openPostId) ?? null
+    : null;
+  const selectedPost = requestedPost ?? manuallySelectedPost;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -188,7 +194,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
       setPosts((currentPosts) => currentPosts.map((item) =>
         item.id === postId ? { ...item, likeCount, isLikedByCurrentUser } : item,
       ));
-      setSelectedPost((currentPost) => currentPost?.id === postId
+      setManuallySelectedPost((currentPost) => currentPost?.id === postId
         ? { ...currentPost, likeCount, isLikedByCurrentUser }
         : currentPost,
       );
@@ -212,7 +218,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
     try {
       await deleteCommunityPost(post.id);
       setPosts((currentPosts) => currentPosts.filter((item) => item.id !== post.id));
-      setSelectedPost((currentPost) => currentPost?.id === post.id ? null : currentPost);
+      setManuallySelectedPost((currentPost) => currentPost?.id === post.id ? null : currentPost);
     } catch (error) {
       setPostDeleteError(getErrorMessage(error, "delete"));
     } finally {
@@ -248,7 +254,10 @@ function CommunityPage({ userId }: CommunityPageProps) {
         post={selectedPost}
         userId={userId}
         currentDisplayName={profile?.displayName ?? COMMUNITY_FALLBACK_DISPLAY_NAME}
-        onBack={() => setSelectedPost(null)}
+        onBack={() => {
+          if (openPostId) onOpenPostHandled();
+          setManuallySelectedPost(null);
+        }}
         onCommentCountChange={handleCommentCountChange}
         onToggleLike={handleToggleLike}
         isLikeUpdating={pendingLikePostIds.has(selectedPost.id)}
@@ -349,7 +358,7 @@ function CommunityPage({ userId }: CommunityPageProps) {
                 <button
                   type="button"
                   className="community-open-post"
-                  onClick={() => setSelectedPost(post)}
+                  onClick={() => setManuallySelectedPost(post)}
                   aria-label="コメントを見る"
                 >
                   コメントを見る

@@ -22,6 +22,8 @@ import AuthForm from "./components/authForm";
 import { getCurrentSession, signOut } from "./services/authService";
 import { supabase } from "./lib/supabaseClient";
 import CommunityPage from "./components/CommunityPage";
+import NotificationsPage from "./components/NotificationsPage";
+import { loadUnreadNotificationCount } from "./services/notificationService";
 
 type AIAnalysis = {
   summary: string;
@@ -37,7 +39,7 @@ type SingleAIAnalysis = {
   improvements: string[];
 };
 
-type HomePage = "overview" | "analysis" | "trades" | "community";
+type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
 
 function formatMoney(value: number, currency: string) {
@@ -75,6 +77,8 @@ function App() {
   const [tradeList, setTradeList] = useState<Trade[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("JPY");
   const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [openCommunityPostId, setOpenCommunityPostId] = useState<string | null>(null);
 
   function restoreDisplayCurrency(id: string, profileCurrency?: unknown) {
     const savedCurrency = localStorage.getItem(`fx-journal-currency-${id}`);
@@ -153,6 +157,22 @@ function App() {
   }, [userId]);
 
   useEffect(() => {
+    if (!userId) return;
+
+    let isActive = true;
+    loadUnreadNotificationCount(userId)
+      .then((count) => {
+        if (isActive) setUnreadNotificationCount(count);
+      })
+      .catch((error: unknown) => {
+        console.error("未読通知数の取得に失敗しました:", error);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [userId, homePage]);
+
+  useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -166,6 +186,7 @@ function App() {
         setUserId(null);
         setTradeList([]);
         setHiddenMethods([]);
+        setUnreadNotificationCount(0);
       }
     });
 
@@ -241,6 +262,7 @@ function App() {
     setUserId(null);
     setTradeList([]);
     setHiddenMethods([]);
+    setUnreadNotificationCount(0);
     setSelectedTrade(null);
     setAiAnalysis(null);
     setSingleAiAnalysis(null);
@@ -455,6 +477,7 @@ function App() {
                     ["analysis", "分析", "▥"],
                     ["trades", "取引", "≡"],
                     ["community", "コミュニティ", "◎"],
+                    ["notifications", "通知", "♢"],
                   ] as const).map(([page, label, icon]) => (
                     <button
                       key={page}
@@ -465,6 +488,11 @@ function App() {
                     >
                       <span className="home-navigation-icon" aria-hidden="true">{icon}</span>
                       <span>{label}</span>
+                      {page === "notifications" && unreadNotificationCount > 0 && (
+                        <span className="notification-nav-badge" aria-label={`未読 ${unreadNotificationCount}件`}>
+                          {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>
@@ -823,7 +851,22 @@ function App() {
               )}
 
               {!showForm && homePage === "community" && (
-                <CommunityPage userId={userId} />
+                <CommunityPage
+                  userId={userId}
+                  openPostId={openCommunityPostId}
+                  onOpenPostHandled={() => setOpenCommunityPostId(null)}
+                />
+              )}
+
+              {!showForm && homePage === "notifications" && userId && (
+                <NotificationsPage
+                  userId={userId}
+                  onNotificationRead={() => setUnreadNotificationCount((count) => Math.max(0, count - 1))}
+                  onOpenPost={(postId) => {
+                    setOpenCommunityPostId(postId);
+                    setHomePage("community");
+                  }}
+                />
               )}
 
               {showForm && (
