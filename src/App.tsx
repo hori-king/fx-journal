@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   analyzeTrades,
   analyzeWinRateByDirection,
@@ -41,6 +41,15 @@ type SingleAIAnalysis = {
 
 type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
+const aiApiBaseUrl = import.meta.env.VITE_AI_API_URL?.replace(/\/+$/, "")
+  || (import.meta.env.DEV ? "http://localhost:3001" : "");
+
+function getAIEndpoint(path: string): string {
+  if (!aiApiBaseUrl) {
+    throw new Error("AI分析APIのURLが設定されていません。管理者にお問い合わせください。");
+  }
+  return `${aiApiBaseUrl}${path}`;
+}
 
 function formatMoney(value: number, currency: string) {
   return new Intl.NumberFormat("ja-JP", {
@@ -79,6 +88,25 @@ function App() {
   const [hiddenMethods, setHiddenMethods] = useState<string[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [openCommunityPostId, setOpenCommunityPostId] = useState<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
+  const tradeRequestGenerationRef = useRef(0);
+  const aiRequestGenerationRef = useRef(0);
+
+  function clearUserScopedState() {
+    setTradeList([]);
+    setSelectedTrade(null);
+    setIsEditing(false);
+    setShowForm(false);
+    setAiAnalysis(null);
+    setSingleAiAnalysis(null);
+    setIsAnalyzing(false);
+    aiRequestGenerationRef.current += 1;
+    setAiError(null);
+    setTradeLoadError(null);
+    setUnreadNotificationCount(0);
+    setOpenCommunityPostId(null);
+    setHomePage("overview");
+  }
 
   function restoreDisplayCurrency(id: string, profileCurrency?: unknown) {
     const savedCurrency = localStorage.getItem(`fx-journal-currency-${id}`);
@@ -141,19 +169,26 @@ function App() {
       try {
         const savedTrades = await loadTrades();
 
-        setTradeList(
-          savedTrades.map((trade: Trade) => ({
+        if (isActive && requestGeneration === tradeRequestGenerationRef.current) {
+          setTradeList(savedTrades.map((trade: Trade) => ({
             ...trade,
             methods: trade.methods ?? [],
-          }))
-        );
+          })));
+        }
       } catch (error) {
         console.error("取引データの読み込みに失敗しました:", error);
-        setTradeLoadError("取引データの読み込みに失敗しました。");
+        if (isActive && requestGeneration === tradeRequestGenerationRef.current) {
+          setTradeLoadError("取引データの読み込みに失敗しました。");
+        }
       }
     }
 
+    let isActive = true;
+    const requestGeneration = ++tradeRequestGenerationRef.current;
     fetchTrades();
+    return () => {
+      isActive = false;
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -176,6 +211,13 @@ function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextUserId = session?.user.id ?? null;
+      if (currentUserIdRef.current !== nextUserId) {
+        currentUserIdRef.current = nextUserId;
+        tradeRequestGenerationRef.current += 1;
+        clearUserScopedState();
+      }
+
       if (session) {
         setIsLoggedIn(true);
         setUserId(session.user.id);
@@ -184,9 +226,7 @@ function App() {
       } else {
         setIsLoggedIn(false);
         setUserId(null);
-        setTradeList([]);
         setHiddenMethods([]);
-        setUnreadNotificationCount(0);
       }
     });
 
@@ -200,6 +240,11 @@ function App() {
       const session = await getCurrentSession();
 
       if (session) {
+        if (currentUserIdRef.current !== session.user.id) {
+          currentUserIdRef.current = session.user.id;
+          tradeRequestGenerationRef.current += 1;
+          clearUserScopedState();
+        }
         setIsLoggedIn(true);
         setUserId(session.user.id);
         restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
@@ -259,13 +304,10 @@ function App() {
     }
 
     setIsLoggedIn(false);
+    currentUserIdRef.current = null;
     setUserId(null);
-    setTradeList([]);
     setHiddenMethods([]);
-    setUnreadNotificationCount(0);
-    setSelectedTrade(null);
-    setAiAnalysis(null);
-    setSingleAiAnalysis(null);
+    clearUserScopedState();
   }
 
   async function testAIAnalysis() {
@@ -276,10 +318,12 @@ function App() {
 
     setAiError(null);
     setIsAnalyzing(true);
+    const requestUserId = userId;
+    const requestGeneration = ++aiRequestGenerationRef.current;
 
     try {
       const response = await fetch(
-        "http://localhost:3001/api/ai-analysis",
+        getAIEndpoint("/api/ai-analysis"),
         {
           method: "POST",
           headers: {
@@ -295,26 +339,30 @@ function App() {
         throw new Error(data.error || "AI分析に失敗しました");
       }
 
-      setAiAnalysis(data.analysis);
+      if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
+        setAiAnalysis(data.analysis);
+      }
     } catch (error) {
       console.error("AI分析エラー:", error);
 
-      setAiError(
-        error instanceof Error ? error.message : "AI分析に失敗しました"
-      );
+      if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
+        setAiError(error instanceof Error ? error.message : "AI分析に失敗しました");
+      }
     } finally {
-      setIsAnalyzing(false);
+      if (requestGeneration === aiRequestGenerationRef.current) setIsAnalyzing(false);
     }
   }
 
   async function analyzeSingleTrade(trade: Trade) {
     setAiError(null);
     setIsAnalyzing(true);
+    const requestUserId = userId;
+    const requestGeneration = ++aiRequestGenerationRef.current;
     const priceMove = getTradePriceMove(trade);
 
     try {
       const response = await fetch(
-        "http://localhost:3001/api/ai-analysis-single",
+        getAIEndpoint("/api/ai-analysis-single"),
         {
           method: "POST",
           headers: {
@@ -350,18 +398,18 @@ function App() {
         throw new Error(data.error || "AI分析に失敗しました");
       }
 
-      setSingleAiAnalysis(data.analysis);
+      if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
+        setSingleAiAnalysis(data.analysis);
+      }
 
     } catch (error) {
       console.error("個別AI分析エラー:", error);
 
-      setAiError(
-        error instanceof Error
-          ? error.message
-          : "AI分析に失敗しました"
-      );
+      if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
+        setAiError(error instanceof Error ? error.message : "AI分析に失敗しました");
+      }
     } finally {
-      setIsAnalyzing(false);
+      if (requestGeneration === aiRequestGenerationRef.current) setIsAnalyzing(false);
     }
   }
 
@@ -396,6 +444,11 @@ function App() {
           const session = await getCurrentSession();
 
           if (session) {
+            if (currentUserIdRef.current !== session.user.id) {
+              currentUserIdRef.current = session.user.id;
+              tradeRequestGenerationRef.current += 1;
+              clearUserScopedState();
+            }
             setIsLoggedIn(true)
             setUserId(session.user.id);
             restoreDisplayCurrency(session.user.id, session.user.user_metadata?.profit_currency);
@@ -852,6 +905,7 @@ function App() {
 
               {!showForm && homePage === "community" && (
                 <CommunityPage
+                  key={userId ?? "anonymous"}
                   userId={userId}
                   openPostId={openCommunityPostId}
                   onOpenPostHandled={() => setOpenCommunityPostId(null)}
@@ -860,6 +914,7 @@ function App() {
 
               {!showForm && homePage === "notifications" && userId && (
                 <NotificationsPage
+                  key={userId}
                   userId={userId}
                   onNotificationRead={() => setUnreadNotificationCount((count) => Math.max(0, count - 1))}
                   onOpenPost={(postId) => {

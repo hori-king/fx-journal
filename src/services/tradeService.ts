@@ -82,7 +82,7 @@ export async function insertTrade(trade: Trade): Promise<boolean> {
 }
 
 export async function updateTrade(trade: Trade): Promise<boolean> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("trades")
     .update({
       symbol: trade.symbol,
@@ -107,14 +107,16 @@ export async function updateTrade(trade: Trade): Promise<boolean> {
       holding_time: trade.holdingTime,
       result: trade.result,
     })
-    .eq("id", trade.id);
+    .eq("id", trade.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("取引データの更新に失敗しました:", error);
     return false;
   }
 
-  return true;
+  return data !== null;
 }
 
 function serializeChartImages(trade: Trade): string {
@@ -137,12 +139,17 @@ function deserializeChartImages(value: unknown): string[] {
 }
 
 export async function deleteTrade(id: string): Promise<boolean> {
-  const { error } = await supabase.from("trades").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("trades")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("取引データの削除に失敗しました:", error);
     return false;
   }
 
-  return true;
+  return data !== null;
 }

@@ -132,7 +132,10 @@ function TradeForm({
           reader.readAsDataURL(blob);
         }, "image/jpeg", 0.82);
       };
-      image.onerror = () => reject(new Error("画像を読み込めませんでした"));
+      image.onerror = () => {
+        URL.revokeObjectURL(image.src);
+        reject(new Error("画像を読み込めませんでした"));
+      };
       image.src = URL.createObjectURL(file);
     });
   }

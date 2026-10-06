@@ -147,6 +147,8 @@ app.post("/api/ai-analysis-single", async (req, res) => {
   }
 });
 
-app.listen(3001, () => {
-  console.log("Backend server started: http://localhost:3001");
+const port = Number(process.env.PORT) || 3001;
+
+app.listen(port, () => {
+  console.log(`Backend server started on port ${port}`);
 });
