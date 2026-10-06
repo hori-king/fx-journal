@@ -4,7 +4,6 @@ import {
   analyzeWinRateByDirection,
   analyzeWinRateBySymbol,
   analyzeMethodPerformance,
-  createAIAnalysisDataset,
   getTradePriceMove,
   type Trade
 } from "./tradeData";
@@ -24,32 +23,10 @@ import { supabase } from "./lib/supabaseClient";
 import CommunityPage from "./components/CommunityPage";
 import NotificationsPage from "./components/NotificationsPage";
 import { loadUnreadNotificationCount } from "./services/notificationService";
-
-type AIAnalysis = {
-  summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  improvements: string[];
-};
-
-type SingleAIAnalysis = {
-  summary: string;
-  goodPoints: string[];
-  cautions: string[];
-  improvements: string[];
-};
+import { requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type SingleAIAnalysis } from "./services/aiService";
 
 type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
-const aiApiBaseUrl = import.meta.env.VITE_AI_API_URL?.replace(/\/+$/, "")
-  || (import.meta.env.DEV ? "http://localhost:3001" : "");
-
-function getAIEndpoint(path: string): string {
-  if (!aiApiBaseUrl) {
-    throw new Error("AI分析APIのURLが設定されていません。管理者にお問い合わせください。");
-  }
-  return `${aiApiBaseUrl}${path}`;
-}
 
 function formatMoney(value: number, currency: string) {
   return new Intl.NumberFormat("ja-JP", {
@@ -322,25 +299,9 @@ function App() {
     const requestGeneration = ++aiRequestGenerationRef.current;
 
     try {
-      const response = await fetch(
-        getAIEndpoint("/api/ai-analysis"),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(createAIAnalysisDataset(tradeList)),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "AI分析に失敗しました");
-      }
-
+      const analysis = await requestFullAIAnalysis(tradeList);
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
-        setAiAnalysis(data.analysis);
+        setAiAnalysis(analysis);
       }
     } catch (error) {
       console.error("AI分析エラー:", error);
@@ -361,45 +322,10 @@ function App() {
     const priceMove = getTradePriceMove(trade);
 
     try {
-      const response = await fetch(
-        getAIEndpoint("/api/ai-analysis-single"),
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            symbol: trade.symbol,
-            direction: trade.direction,
-            entry: trade.entry,
-            exit: trade.exit,
-            lot: trade.lot,
-            leverage: trade.leverage ?? null,
-            timeframe: trade.timeframe,
-            reason: trade.reason,
-            takeProfit: trade.takeProfit,
-            stopLoss: trade.stopLoss,
-            profit: trade.profit,
-            profitCurrency: trade.profitCurrency ?? "JPY",
-            priceMove: priceMove.value,
-            priceMoveUnit: priceMove.unit,
-            rr: trade.rr,
-            result: trade.result,
-            holdingTime: trade.holdingTime,
-            entryTime: trade.entryTime,
-            exitTime: trade.exitTime,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "AI分析に失敗しました");
-      }
+      const analysis = await requestSingleAIAnalysis(trade, priceMove.value, priceMove.unit);
 
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
-        setSingleAiAnalysis(data.analysis);
+        setSingleAiAnalysis(analysis);
       }
 
     } catch (error) {
