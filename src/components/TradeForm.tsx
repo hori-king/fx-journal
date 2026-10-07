@@ -513,23 +513,27 @@ function TradeForm({
           <div className="form-field trade-time-field">
             <label>エントリー時間</label>
 
-            <input
-              className="trade-time-input"
-              type="datetime-local"
-              value={entryTime}
-              onChange={(e) => setEntryTime(e.target.value)}
-            />
+            <div className="trade-time-input-shell">
+              <input
+                className="trade-time-input"
+                type="datetime-local"
+                value={entryTime}
+                onChange={(e) => setEntryTime(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="form-field trade-time-field">
             <label>決済時間</label>
 
-            <input
-              className="trade-time-input"
-              type="datetime-local"
-              value={exitTime}
-              onChange={(e) => setExitTime(e.target.value)}
-            />
+            <div className="trade-time-input-shell">
+              <input
+                className="trade-time-input"
+                type="datetime-local"
+                value={exitTime}
+                onChange={(e) => setExitTime(e.target.value)}
+              />
+            </div>
           </div>
 
         </div>

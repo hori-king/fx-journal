@@ -384,15 +384,43 @@
   min-width: 0;
 }
 
-.trade-time-input,
-.trade-time-field input[type="datetime-local"] {
+.trade-time-input-shell {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.trade-time-input-shell:focus-within {
+  border-color: #64748b;
+  background: #111827;
+}
+
+.trade-time-field .trade-time-input {
   display: block;
+  flex: 1 1 0;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   min-inline-size: 0;
   box-sizing: border-box;
-  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.trade-time-field .trade-time-input:focus {
+  border: 0;
+  background: transparent;
 }
 
 @media (max-width: 700px) {
@@ -400,9 +428,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .trade-time-input,
-  .trade-time-field input[type="datetime-local"] {
+  .trade-time-input-shell {
     padding-inline: 10px;
+  }
+
+  .trade-time-field .trade-time-input {
     font-size: 16px;
   }
 }
