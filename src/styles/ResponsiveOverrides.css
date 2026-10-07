@@ -364,3 +364,45 @@
   .trade-page-heading { align-items: flex-start; flex-direction: column; }
   .trade-page-heading button { width: 100%; }
 }
+
+/* 取引時間のdatetime-localがカードやグリッドの幅を押し広げないようにする。 */
+.form-section.trade-time-section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.trade-time-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trade-time-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.trade-time-input,
+.trade-time-field input[type="datetime-local"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
+
+@media (max-width: 700px) {
+  .trade-time-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trade-time-input,
+  .trade-time-field input[type="datetime-local"] {
+    padding-inline: 10px;
+    font-size: 16px;
+  }
+}

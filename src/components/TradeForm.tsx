@@ -502,28 +502,30 @@ function TradeForm({
         </div>
       </section>
 
-      <section className="form-section">
+      <section className="form-section trade-time-section">
         <div className="form-section-header">
           <h3>取引時間</h3>
           <span>エントリーから決済まで</span>
         </div>
 
-        <div className="form-grid">
+        <div className="form-grid trade-time-grid">
 
-          <div className="form-field">
+          <div className="form-field trade-time-field">
             <label>エントリー時間</label>
 
             <input
+              className="trade-time-input"
               type="datetime-local"
               value={entryTime}
               onChange={(e) => setEntryTime(e.target.value)}
             />
           </div>
 
-          <div className="form-field">
+          <div className="form-field trade-time-field">
             <label>決済時間</label>
 
             <input
+              className="trade-time-input"
               type="datetime-local"
               value={exitTime}
               onChange={(e) => setExitTime(e.target.value)}
