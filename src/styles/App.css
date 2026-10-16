@@ -96,6 +96,17 @@ button:disabled {
   gap: 12px;
 }
 
+.subscription-plan-badge {
+  align-self: center;
+  padding: 5px 10px;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .profit-currency-control {
   display: grid;
   gap: 5px;

@@ -24,6 +24,7 @@ import CommunityPage from "./components/CommunityPage";
 import NotificationsPage from "./components/NotificationsPage";
 import { loadUnreadNotificationCount } from "./services/notificationService";
 import { requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type SingleAIAnalysis } from "./services/aiService";
+import { useSubscription } from "./hooks/useSubscription";
 
 type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
@@ -51,6 +52,7 @@ function formatSignedProfitGroups(values: Record<string, number>) {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const { subscription, error: subscriptionError } = useSubscription(userId);
   const [showForm, setShowForm] = useState(false);
   const [homePage, setHomePage] = useState<HomePage>("overview");
   const [tradePage, setTradePage] = useState(0);
@@ -433,6 +435,11 @@ function App() {
                 </div>
 
                 <div className="app-header-controls">
+                  {subscription && (
+                    <span className="subscription-plan-badge" aria-label={`現在のプラン: ${subscription.plan === "pro" ? "Pro" : "Free"}`}>
+                      {subscription.plan === "pro" ? "Pro" : "Free"}
+                    </span>
+                  )}
                   <label className="profit-currency-control">
                     <span>新規取引の損益通貨</span>
                     <select value={displayCurrency} onChange={(event) => handleDisplayCurrencyChange(event.target.value)}>
@@ -442,6 +449,8 @@ function App() {
                   <button className="logout-button" onClick={handleLogout}>ログアウト</button>
                 </div>
               </div>
+
+              {subscriptionError && <p className="ai-error">{subscriptionError}</p>}
 
               {tradeLoadError && (
                 <p className="ai-error">
