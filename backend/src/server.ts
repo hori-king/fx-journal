@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cors from "cors";
 import OpenAI from "openai";
 import "dotenv/config";
+import { AIUsageServiceError, finalizeAIUsage, runMeteredAIAnalysis, type AIAnalysisType } from "./aiUsage.js";
 
 type AuthenticatedRequest = Request & { authUserId?: string };
 type JsonObject = Record<string, unknown>;
@@ -160,6 +161,123 @@ function validateSingleAnalysis(body: unknown): body is JsonObject {
   return validateTrade(body);
 }
 
+function validateFullAnalysisResult(value: unknown): value is {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  improvements: string[];
+} {
+  return isObject(value)
+    && hasOnlyKeys(value, ["summary", "strengths", "weaknesses", "improvements"])
+    && isString(value.summary, 5000, false)
+    && ["strengths", "weaknesses", "improvements"].every((key) =>
+      Array.isArray(value[key]) && value[key].length <= 30 && value[key].every((item) => isString(item, 1000, false))
+    );
+}
+
+function validateSingleAnalysisResult(value: unknown): value is {
+  summary: string;
+  goodPoints: string[];
+  cautions: string[];
+  improvements: string[];
+} {
+  return isObject(value)
+    && hasOnlyKeys(value, ["summary", "goodPoints", "cautions", "improvements"])
+    && isString(value.summary, 5000, false)
+    && ["goodPoints", "cautions", "improvements"].every((key) =>
+      Array.isArray(value[key]) && value[key].length <= 30 && value[key].every((item) => isString(item, 1000, false))
+    );
+}
+
+async function runAIAnalysis<T>(
+  req: AuthenticatedRequest,
+  res: Response,
+  analysisType: AIAnalysisType,
+  endpoint: string,
+  prompt: string,
+  validateResult: (value: unknown) => value is T,
+) {
+  const userId = req.authUserId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  let completedReservationId: string | null = null;
+
+  try {
+    const result = await runMeteredAIAnalysis<T>(
+      userId,
+      analysisType,
+      async () => {
+        const response = await openai.responses.create(
+          { model: "gpt-5.6-luna", input: prompt },
+          { timeout: 10 * 60 * 1000 },
+        );
+        const analysis: unknown = JSON.parse(response.output_text);
+        if (req.aborted || res.destroyed) throw new Error("AI analysis response was interrupted");
+        return analysis;
+      },
+      validateResult,
+    );
+
+    if (!result.allowed) {
+      const usage = result.usage;
+      const retryAfterSeconds = Math.max(1, Math.ceil((Date.parse(usage.resetAt) - Date.now()) / 1000));
+      res.setHeader("Retry-After", String(retryAfterSeconds));
+      res.status(429).json({
+        error: "この利用期間のAI分析上限に達しました。",
+        code: "AI_USAGE_LIMIT_REACHED",
+        analysisType,
+        plan: usage.plan,
+        usedCount: usage.usedCount,
+        limit: usage.limit,
+        remaining: usage.remaining,
+        resetAt: usage.resetAt,
+      });
+      return;
+    }
+
+    if (!result.usage.reservationId) throw new AIUsageServiceError();
+    completedReservationId = result.usage.reservationId;
+    if (req.aborted || res.destroyed) {
+      await finalizeAIUsage(completedReservationId, false);
+      completedReservationId = null;
+      return;
+    }
+
+    let responseFinished = false;
+    res.once("finish", () => {
+      responseFinished = true;
+    });
+    res.once("close", () => {
+      if (!responseFinished && completedReservationId) {
+        void finalizeAIUsage(completedReservationId, false).catch(() => {
+          console.error("Could not release AI usage after interrupted response", { userId, endpoint });
+        });
+      }
+    });
+    res.json({ analysis: result.analysis });
+  } catch (error) {
+    if (completedReservationId) {
+      try {
+        await finalizeAIUsage(completedReservationId, false);
+        completedReservationId = null;
+      } catch {
+        console.error("Could not release AI usage reservation", { userId, endpoint });
+      }
+    }
+
+    if (req.aborted || res.destroyed || res.headersSent) return;
+    if (error instanceof AIUsageServiceError) {
+      res.status(503).json({ error: "AI利用状況を確認できません。時間をおいて再度お試しください。" });
+      return;
+    }
+    console.error("AI analysis request failed", { userId, endpoint });
+    res.status(500).json({ error: "AI分析中にエラーが発生しました" });
+  }
+}
+
 function invalidInput(res: Response) {
   res.status(400).json({ error: "AI分析に必要なデータが正しくありません。入力内容をご確認ください。" });
 }
@@ -173,10 +291,7 @@ app.post("/api/ai-analysis", requireAuth, rateLimitByUser, async (req, res) => {
     invalidInput(res);
     return;
   }
-  try {
-    const response = await openai.responses.create({
-      model: "gpt-5.6-luna",
-      input: `
+  await runAIAnalysis(req as AuthenticatedRequest, res, "all", "/api/ai-analysis", `
       以下はユーザーのFX取引分析データです。
       ${JSON.stringify(req.body, null, 2)}
       データには以下が含まれています。
@@ -195,13 +310,7 @@ app.post("/api/ai-analysis", requireAuth, rateLimitByUser, async (req, res) => {
       JSON以外の文章は出力しないでください。
       summaryや各分析結果に含まれる数値は基本的にそのまま使用し、存在しない数値を推測しないでください。
       取引件数が少ない場合はデータ不足と明記し、相関関係だけで因果関係があると断定しないでください。
-      `,
-    });
-    res.json({ analysis: JSON.parse(response.output_text) });
-  } catch {
-    console.error("AI analysis request failed", { userId: (req as AuthenticatedRequest).authUserId, endpoint: "/api/ai-analysis" });
-    res.status(500).json({ error: "AI分析中にエラーが発生しました" });
-  }
+      `, validateFullAnalysisResult);
 });
 
 app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, res) => {
@@ -209,10 +318,7 @@ app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, re
     invalidInput(res);
     return;
   }
-  try {
-    const response = await openai.responses.create({
-      model: "gpt-5.6-luna",
-      input: `
+  await runAIAnalysis(req as AuthenticatedRequest, res, "single", "/api/ai-analysis-single", `
       以下はユーザーのFX取引分析データです。
       ${JSON.stringify(req.body, null, 2)}
       この1件の取引について分析してください。
@@ -221,13 +327,7 @@ app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, re
       {"summary":"この取引の総合的な分析","goodPoints":["良かった点"],"cautions":["注意点"],"improvements":["改善ポイント"]}
       JSON以外の文章は出力しないでください。
       データに存在しない事実を作らず、チャートから判断したような説明をせず、1件だけの取引から一般的な傾向や将来の利益・勝率を断定せず、投資判断や売買推奨をしないでください。
-      `,
-    });
-    res.json({ analysis: JSON.parse(response.output_text) });
-  } catch {
-    console.error("AI analysis request failed", { userId: (req as AuthenticatedRequest).authUserId, endpoint: "/api/ai-analysis-single" });
-    res.status(500).json({ error: "AI分析中にエラーが発生しました" });
-  }
+      `, validateSingleAnalysisResult);
 });
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
