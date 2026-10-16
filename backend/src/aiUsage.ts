@@ -1,6 +1,13 @@
 export type AIAnalysisType = "single" | "all";
 export type AIPlan = "free" | "pro";
 
+export type AIUsageWindow = {
+  periodStart: string;
+  periodEnd: string;
+  resetAt: string;
+  timeZone: "Asia/Tokyo";
+};
+
 export type AIUsageClaim = {
   allowed: boolean;
   reservationId: string | null;
@@ -28,6 +35,19 @@ type AIUsageOperations = {
 export type MeteredAIResult<T> =
   | { allowed: false; usage: AIUsageClaim }
   | { allowed: true; usage: AIUsageClaim; analysis: T };
+
+export function formatJstTimestamp(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) throw new AIUsageServiceError();
+  const jstWallClock = new Date(timestamp + 9 * 60 * 60 * 1000).toISOString();
+  return `${jstWallClock.slice(0, -1)}+09:00`;
+}
+
+export function toAIUsageWindow(usage: AIUsageClaim): AIUsageWindow {
+  const periodStart = formatJstTimestamp(usage.periodStart);
+  const periodEnd = formatJstTimestamp(usage.resetAt);
+  return { periodStart, periodEnd, resetAt: periodEnd, timeZone: "Asia/Tokyo" };
+}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

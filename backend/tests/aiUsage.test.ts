@@ -2,8 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   runMeteredAIAnalysis,
+  formatJstTimestamp,
+  toAIUsageWindow,
   type AIUsageClaim,
 } from "../src/aiUsage.js";
+
+test("usage timestamps are returned as JST offsets without changing the instant", () => {
+  assert.equal(formatJstTimestamp("2026-10-31T15:00:00.000Z"), "2026-11-01T00:00:00.000+09:00");
+  assert.equal(Date.parse(formatJstTimestamp("2026-10-31T15:00:00.000Z")), Date.parse("2026-10-31T15:00:00.000Z"));
+  assert.deepEqual(toAIUsageWindow(allowedClaim), {
+    periodStart: "2026-10-01T09:00:00.000+09:00",
+    periodEnd: "2026-11-01T09:00:00.000+09:00",
+    resetAt: "2026-11-01T09:00:00.000+09:00",
+    timeZone: "Asia/Tokyo",
+  });
+});
 
 const allowedClaim: AIUsageClaim = {
   allowed: true,

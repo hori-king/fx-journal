@@ -23,11 +23,28 @@ import { supabase } from "./lib/supabaseClient";
 import CommunityPage from "./components/CommunityPage";
 import NotificationsPage from "./components/NotificationsPage";
 import { loadUnreadNotificationCount } from "./services/notificationService";
-import { requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type SingleAIAnalysis } from "./services/aiService";
+import { requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type AIUsageWindow, type SingleAIAnalysis } from "./services/aiService";
 import { useSubscription } from "./hooks/useSubscription";
 
 type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
+
+function AIUsagePeriod({ window }: { window: AIUsageWindow }) {
+  const formatJst = (value: string) => new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+
+  return <p className="ai-usage-period">
+    利用期間（日本時間）：{formatJst(window.periodStart)} 〜 {formatJst(window.periodEnd)}
+    <span> リセット：{formatJst(window.resetAt)}</span>
+  </p>;
+}
 
 function formatMoney(value: number, currency: string) {
   return new Intl.NumberFormat("ja-JP", {
@@ -59,6 +76,8 @@ function App() {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [singleAiAnalysis, setSingleAiAnalysis] = useState<SingleAIAnalysis | null>(null);
+  const [fullAIUsageWindow, setFullAIUsageWindow] = useState<AIUsageWindow | null>(null);
+  const [singleAIUsageWindow, setSingleAIUsageWindow] = useState<AIUsageWindow | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -78,6 +97,8 @@ function App() {
     setShowForm(false);
     setAiAnalysis(null);
     setSingleAiAnalysis(null);
+    setFullAIUsageWindow(null);
+    setSingleAIUsageWindow(null);
     setIsAnalyzing(false);
     aiRequestGenerationRef.current += 1;
     setAiError(null);
@@ -301,9 +322,10 @@ function App() {
     const requestGeneration = ++aiRequestGenerationRef.current;
 
     try {
-      const analysis = await requestFullAIAnalysis(tradeList);
+      const response = await requestFullAIAnalysis(tradeList);
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
-        setAiAnalysis(analysis);
+        setAiAnalysis(response.analysis);
+        setFullAIUsageWindow(response.usage);
       }
     } catch (error) {
       console.error("AI分析エラー:", error);
@@ -324,10 +346,11 @@ function App() {
     const priceMove = getTradePriceMove(trade);
 
     try {
-      const analysis = await requestSingleAIAnalysis(trade, priceMove.value, priceMove.unit);
+      const response = await requestSingleAIAnalysis(trade, priceMove.value, priceMove.unit);
 
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
-        setSingleAiAnalysis(analysis);
+        setSingleAiAnalysis(response.analysis);
+        setSingleAIUsageWindow(response.usage);
       }
 
     } catch (error) {
@@ -423,6 +446,7 @@ function App() {
                 onDelete={handleDeleteTrade}
                 onAnalyze={analyzeSingleTrade}
                 singleAiAnalysis={singleAiAnalysis}
+                aiUsageWindow={singleAIUsageWindow}
                 isAnalyzing={isAnalyzing}
               />
             )
@@ -629,6 +653,7 @@ function App() {
                   {aiAnalysis && (
                     <div className="ai-analysis">
                       <h2>🤖 AI分析</h2>
+                      {fullAIUsageWindow && <AIUsagePeriod window={fullAIUsageWindow} />}
                       <div className="ai-section">
                         <h3>📊 全体分析</h3>
                         <p>{aiAnalysis.summary}</p>

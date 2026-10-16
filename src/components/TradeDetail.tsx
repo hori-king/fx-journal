@@ -1,4 +1,5 @@
 import { formatTradePriceMove, getMoveUnit, getTradeChartImages, type Trade } from "../tradeData";
+import type { AIUsageWindow } from "../services/aiService";
 
 interface TradeDetailProps {
   trade: Trade;
@@ -12,6 +13,7 @@ interface TradeDetailProps {
     cautions: string[];
     improvements: string[];
   } | null;
+  aiUsageWindow: AIUsageWindow | null;
   isAnalyzing: boolean;
 }
 
@@ -22,6 +24,7 @@ function TradeDetail({
   onDelete,
   onAnalyze,
   singleAiAnalysis,
+  aiUsageWindow,
   isAnalyzing,
 }: TradeDetailProps) {
   return (
@@ -219,6 +222,7 @@ function TradeDetail({
         <div className="ai-analysis">
 
           <h2>🤖 AI分析</h2>
+          {aiUsageWindow && <AIUsagePeriod window={aiUsageWindow} />}
 
           <div className="ai-section">
             <h3>総合分析</h3>
@@ -261,6 +265,23 @@ function TradeDetail({
 
     </div>
   );
+}
+
+function AIUsagePeriod({ window }: { window: AIUsageWindow }) {
+  const formatJst = (value: string) => new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+
+  return <p className="ai-usage-period">
+    利用期間（日本時間）：{formatJst(window.periodStart)} 〜 {formatJst(window.periodEnd)}
+    <span> リセット：{formatJst(window.resetAt)}</span>
+  </p>;
 }
 
 export default TradeDetail;

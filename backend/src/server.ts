@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cors from "cors";
 import OpenAI from "openai";
 import "dotenv/config";
-import { AIUsageServiceError, finalizeAIUsage, runMeteredAIAnalysis, type AIAnalysisType } from "./aiUsage.js";
+import { AIUsageServiceError, finalizeAIUsage, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
 
 type AuthenticatedRequest = Request & { authUserId?: string };
 type JsonObject = Record<string, unknown>;
@@ -233,7 +233,7 @@ async function runAIAnalysis<T>(
         usedCount: usage.usedCount,
         limit: usage.limit,
         remaining: usage.remaining,
-        resetAt: usage.resetAt,
+        ...toAIUsageWindow(usage),
       });
       return;
     }
@@ -257,7 +257,7 @@ async function runAIAnalysis<T>(
         });
       }
     });
-    res.json({ analysis: result.analysis });
+    res.json({ analysis: result.analysis, usage: toAIUsageWindow(result.usage) });
   } catch (error) {
     if (completedReservationId) {
       try {

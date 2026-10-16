@@ -330,4 +330,18 @@
   font-size: 14px;
 }
 
+.ai-usage-period {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #26364a;
+  border-radius: 8px;
+  color: #9bb3d1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ai-usage-period span {
+  display: block;
+}
+
 /* スマートフォン表示 */
