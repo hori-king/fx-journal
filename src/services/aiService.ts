@@ -61,6 +61,9 @@ async function postAnalysis<T>(path: string, payload: unknown): Promise<AIAnalys
       throw new Error(apiMessage ?? "AI分析に必要なデータが正しくありません。");
     }
     if (response.status === 401) throw new Error("ログイン情報を確認できません。再度ログインしてください。");
+    if (response.status === 503) {
+      throw new Error(apiMessage ?? "AI利用状況サービスに接続できません。時間をおいて再度お試しください。");
+    }
     if (response.status === 429) {
       const resetAt = typeof responseBody === "object" && responseBody !== null && "resetAt" in responseBody
         && typeof responseBody.resetAt === "string" ? responseBody.resetAt : null;

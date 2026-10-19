@@ -270,6 +270,7 @@ async function runAIAnalysis<T>(
 
     if (req.aborted || res.destroyed || res.headersSent) return;
     if (error instanceof AIUsageServiceError) {
+      console.error("AI usage service unavailable", { endpoint });
       res.status(503).json({ error: "AI利用状況を確認できません。時間をおいて再度お試しください。" });
       return;
     }

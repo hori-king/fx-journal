@@ -69,7 +69,13 @@ function isUsageClaim(value: unknown): value is AIUsageClaim {
 async function callUsageRPC<T>(functionName: string, body: Record<string, unknown>, isValid: (value: unknown) => value is T): Promise<T> {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) throw new AIUsageServiceError();
+  if (!url || !serviceRoleKey) {
+    console.error("AI usage RPC configuration is missing", {
+      functionName,
+      missing: [!url && "SUPABASE_URL", !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY"].filter(Boolean),
+    });
+    throw new AIUsageServiceError();
+  }
 
   let response: Response;
   try {
@@ -83,12 +89,32 @@ async function callUsageRPC<T>(functionName: string, body: Record<string, unknow
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(8000),
     });
-  } catch {
+  } catch (error) {
+    console.error("AI usage RPC transport failed", {
+      functionName,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     throw new AIUsageServiceError();
   }
 
   if (!response.ok) {
-    console.error("AI usage database request failed", { functionName, status: response.status });
+    let code: string | undefined;
+    let message: string | undefined;
+    try {
+      const payload: unknown = await response.json();
+      if (isObject(payload)) {
+        if (typeof payload.code === "string" && /^[A-Za-z0-9_.-]{1,32}$/.test(payload.code)) code = payload.code;
+        if (typeof payload.message === "string") {
+          message = payload.message
+            .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+            .replace(/\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
+            .slice(0, 300);
+        }
+      }
+    } catch {
+      // エラーレスポンス本文がJSONでなくても、ステータスだけ記録する。
+    }
+    console.error("AI usage RPC rejected", { functionName, status: response.status, code, message });
     throw new AIUsageServiceError();
   }
 
@@ -96,9 +122,17 @@ async function callUsageRPC<T>(functionName: string, body: Record<string, unknow
   try {
     value = await response.json();
   } catch {
+    console.error("AI usage RPC returned invalid JSON", { functionName, status: response.status });
     throw new AIUsageServiceError();
   }
-  if (!isValid(value)) throw new AIUsageServiceError();
+  if (!isValid(value)) {
+    console.error("AI usage RPC returned an unexpected shape", {
+      functionName,
+      valueType: Array.isArray(value) ? "array" : value === null ? "null" : typeof value,
+      keys: isObject(value) ? Object.keys(value).slice(0, 20) : undefined,
+    });
+    throw new AIUsageServiceError();
+  }
   return value;
 }
 
@@ -111,7 +145,11 @@ function isBoolean(value: unknown): value is boolean {
 }
 
 export function finalizeAIUsage(reservationId: string, succeeded: boolean): Promise<boolean> {
-  return callUsageRPC("finalize_ai_usage", { p_usage_id: reservationId, p_succeeded: succeeded }, isBoolean);
+  return callUsageRPC("finalize_ai_usage", { p_usage_id: reservationId, p_succeeded: succeeded }, isBoolean)
+    .then((finalized) => {
+      if (!finalized) console.error("AI usage finalization found no active reservation", { functionName: "finalize_ai_usage" });
+      return finalized;
+    });
 }
 
 export async function runMeteredAIAnalysis<T>(
