@@ -1,5 +1,5 @@
 import { formatTradePriceMove, getMoveUnit, getTradeChartImages, type Trade } from "../tradeData";
-import type { AIUsageWindow } from "../services/aiService";
+import type { AIUsageWindow, SingleAIAnalysis } from "../services/aiService";
 
 interface TradeDetailProps {
   trade: Trade;
@@ -7,12 +7,7 @@ interface TradeDetailProps {
   onEdit: () => void;
   onDelete: (id: string) => void;
   onAnalyze: (trade: Trade) => void;
-  singleAiAnalysis: {
-    summary: string;
-    goodPoints: string[];
-    cautions: string[];
-    improvements: string[];
-  } | null;
+  singleAiAnalysis: SingleAIAnalysis | null;
   aiUsageWindow: AIUsageWindow | null;
   isAnalyzing: boolean;
 }
@@ -262,6 +257,24 @@ function TradeDetail({
             </ul>
 
           </div>
+
+          {singleAiAnalysis.imageFindings && (
+            <div className="ai-section ai-image-analysis">
+              <h3>画像から読み取れたこと</h3>
+              {singleAiAnalysis.imageFindings.length > 0 ? (
+                <ul>{singleAiAnalysis.imageFindings.map((finding, index) => <li key={index}>{finding}</li>)}</ul>
+              ) : <p>画像から明確に確認できる情報はありませんでした。</p>}
+            </div>
+          )}
+
+          {singleAiAnalysis.imageLimitations && (
+            <div className="ai-section ai-image-analysis">
+              <h3>画像では確認できないこと</h3>
+              {singleAiAnalysis.imageLimitations.length > 0 ? (
+                <ul>{singleAiAnalysis.imageLimitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul>
+              ) : <p>分析に必要な範囲で、特に確認できない項目はありませんでした。</p>}
+            </div>
+          )}
 
         </div>
       )}

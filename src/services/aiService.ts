@@ -13,6 +13,8 @@ export type SingleAIAnalysis = {
   goodPoints: string[];
   cautions: string[];
   improvements: string[];
+  imageFindings?: string[];
+  imageLimitations?: string[];
 };
 
 export type AIUsageWindow = {

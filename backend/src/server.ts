@@ -180,18 +180,30 @@ function validateFullAnalysisResult(value: unknown): value is {
     );
 }
 
-function validateSingleAnalysisResult(value: unknown): value is {
+function validateSingleAnalysisResult(value: unknown, requiresImageFindings = false): value is {
   summary: string;
   goodPoints: string[];
   cautions: string[];
   improvements: string[];
+  imageFindings?: string[];
+  imageLimitations?: string[];
 } {
-  return isObject(value)
-    && hasOnlyKeys(value, ["summary", "goodPoints", "cautions", "improvements"])
+  if (!isObject(value)) return false;
+  const allowedKeys = ["summary", "goodPoints", "cautions", "improvements", "imageFindings", "imageLimitations"];
+  const hasValidImageFindings = !requiresImageFindings || (
+    Array.isArray(value.imageFindings)
+      && value.imageFindings.length <= 8
+      && value.imageFindings.every((item) => isString(item, 1000, false))
+      && Array.isArray(value.imageLimitations)
+      && value.imageLimitations.length <= 8
+      && value.imageLimitations.every((item) => isString(item, 1000, false))
+  );
+  return hasOnlyKeys(value, allowedKeys)
     && isString(value.summary, 5000, false)
     && ["goodPoints", "cautions", "improvements"].every((key) =>
       Array.isArray(value[key]) && value[key].length <= 30 && value[key].every((item) => isString(item, 1000, false))
-    );
+    )
+    && hasValidImageFindings;
 }
 
 async function runAIAnalysis<T>(
@@ -360,8 +372,9 @@ app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, re
 
   const chartContext = chartImages.length > 0 ? `
       添付された${chartImages.length}枚の取引チャート画像も、この取引データと合わせて分析してください。
-      画像から明確に確認できる範囲で、エントリー位置・決済位置・相場の方向性・トレンド・サポート/レジスタンス・手法や根拠との整合性を振り返ってください。
-      画像が不鮮明、情報不足、または特定できない内容は推測せず、その旨を明記してください。画像上の価格や時間を読み違える可能性にも留意してください。
+      画像分析は一般論で済ませず、目視できるローソク足の動き、時間足表示、価格目盛り、描画されたラインやエントリー/決済マークなど、具体的な視覚的根拠を挙げてください。その根拠が取引データとどう一致・不一致なのかを説明してください。
+      エントリー位置・決済位置・トレンド・サポート/レジスタンスを確認してください。該当箇所や数値が画像で判別できない場合は断定せず、「画像では確認できないこと」に分けてください。
+      「画像から読み取れたこと」は最大5件、「画像では確認できないこと」は最大5件に絞り、各項目を短く具体的にしてください。画像上の価格や時間を読み違える可能性にも留意してください。
       ` : "";
   const tradeDataForAI: JsonObject = {};
   for (const [key, value] of Object.entries(requestBody)) {
@@ -374,11 +387,21 @@ app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, re
       ${chartContext}
       この1件の取引について分析してください。
       特に取引結果、RRと損益、エントリー条件、TP / SL、保有時間、BUY / SELL、根拠、良かった点、注意点、改善ポイントを確認してください。
+      画像がある場合は、画像確認用の2項目を加え、画像がない場合は従来の項目だけを返してください。
       必ず以下のJSON形式だけで回答してください。
-      {"summary":"この取引の総合的な分析","goodPoints":["良かった点"],"cautions":["注意点"],"improvements":["改善ポイント"]}
+      ${chartImages.length > 0
+    ? '{"summary":"取引データと画像を根拠にした具体的な総合分析","goodPoints":["良かった点"],"cautions":["注意点"],"improvements":["次回に実行できる改善行動"],"imageFindings":["画像で実際に見える事実と取引データとの関係"],"imageLimitations":["画像だけでは判別できないこと"]}'
+    : '{"summary":"この取引の総合的な分析","goodPoints":["良かった点"],"cautions":["注意点"],"improvements":["改善ポイント"]}'}
       JSON以外の文章は出力しないでください。
-      データや画像から確認できない事実を作らず、チャート画像が添付されている場合は画像上で明確に確認できる内容に限って説明してください。1件だけの取引から一般的な傾向や将来の利益・勝率を断定せず、投資判断や売買推奨をしないでください。
-      `, validateSingleAnalysisResult, chartImages);
+      データや画像から確認できない事実を作らず、画像上で明確に確認できる内容に限って説明してください。改善点は「次回、何を記録・確認するか」が分かる具体的な行動にしてください。1件だけの取引から一般的な傾向や将来の利益・勝率を断定せず、投資判断や売買推奨をしないでください。
+      `, (value): value is {
+        summary: string;
+        goodPoints: string[];
+        cautions: string[];
+        improvements: string[];
+        imageFindings?: string[];
+        imageLimitations?: string[];
+      } => validateSingleAnalysisResult(value, chartImages.length > 0), chartImages);
 });
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {

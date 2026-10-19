@@ -319,6 +319,11 @@
   color: #cbd5e1;
 }
 
+.ai-image-analysis {
+  background: #0b1420;
+  border-color: #26384a;
+}
+
 /* エラー表示 */
 
 .ai-error {
