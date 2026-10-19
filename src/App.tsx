@@ -8,6 +8,7 @@ import {
   type Trade
 } from "./tradeData";
 import DashboardCard from "./components/DashboardCard";
+import ProFeatureLock from "./components/ProFeatureLock";
 import TradeCard from "./components/TradeCard";
 import TradeForm from "./components/TradeForm";
 import TradeDetail from "./components/TradeDetail";
@@ -70,6 +71,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const { subscription, error: subscriptionError } = useSubscription(userId);
+  const isPro = subscription?.plan === "pro";
+  const isSubscriptionLoading = userId !== null && subscription === null && subscriptionError === null;
   const [showForm, setShowForm] = useState(false);
   const [homePage, setHomePage] = useState<HomePage>("overview");
   const [tradePage, setTradePage] = useState(0);
@@ -532,10 +535,17 @@ function App() {
                     value={formatProfitGroups(analysis.profitByCurrency)}
                   />
 
-                  <DashboardCard
+                  <ProFeatureLock
                     title="平均利益"
-                    value={formatProfitGroups(analysis.averageProfitByCurrency)}
-                  />
+                    isPro={isPro}
+                    isLoading={isSubscriptionLoading}
+                    compact
+                  >
+                    <DashboardCard
+                      title="平均利益"
+                      value={formatProfitGroups(analysis.averageProfitByCurrency)}
+                    />
+                  </ProFeatureLock>
                 </div>
 
                 <div className="dashboard-result">
@@ -572,75 +582,91 @@ function App() {
 
               {!showForm && homePage === "analysis" && (
                 <section className="home-page analysis-page" aria-label="取引分析">
-              <h2>BUY / SELL別の勝率</h2>
-
-              <div className="analysis-list">
-                {directionAnalysis.map((item) => (
-                  <div className="analysis-card" key={item.direction}>
-                    <h3>{item.direction}</h3>
-                    <p className="analysis-rate">
-                      {item.winRate.toFixed(1)}%
-                    </p>
-                    <p>
-                      {item.winCount}勝 / {item.totalTrades}取引
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <h2>通貨ペア別の勝率</h2>
-
-              <div className="analysis-list">
-                {symbolAnalysis.map((item) => (
-                  <div className="analysis-card" key={item.symbol}>
-                    <h3>{item.symbol}</h3>
-                    <p className="analysis-rate">
-                      {item.winRate.toFixed(1)}%
-                    </p>
-                    <p>
-                      {item.winCount}勝 / {item.totalTrades}取引
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <h2>手法別の成績</h2>
-
-              <div className="method-analysis-search">
-                <label htmlFor="method-analysis-search">手法を検索</label>
-                <input
-                  id="method-analysis-search"
-                  type="search"
-                  value={methodSearch}
-                  onChange={(event) => setMethodSearch(event.target.value)}
-                  placeholder="手法名を入力"
-                />
-              </div>
-
-              {filteredMethodPerformance.length === 0 ? (
-                <p className="method-analysis-empty">
-                  {methodPerformance.length === 0 ? "取引データがありません。" : "一致する手法がありません。"}
-                </p>
-              ) : (
-                <div className="analysis-list method-analysis-list">
-                  {filteredMethodPerformance.map((item) => (
-                    <div className="analysis-card method-analysis-card" key={item.method}>
-                      <h3>{item.method}</h3>
-                      <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
-                      <p className="method-analysis-rate-label">勝率</p>
-                      <div className="method-analysis-counts">
-                        <p><span>取引数</span><strong>{item.totalTrades}</strong></p>
-                        <p><span>勝ち</span><strong>{item.winCount}</strong></p>
-                        <p><span>負け</span><strong>{item.lossCount}</strong></p>
-                        <p><span>引き分け</span><strong>{item.drawCount}</strong></p>
-                      </div>
-                      <div className="method-analysis-totals">
-                        <p><span>総損益</span><strong>{formatSignedProfitGroups(item.profitByCurrency)}</strong></p>
+                  <ProFeatureLock
+                    title="BUY / SELL別の勝率"
+                    isPro={isPro}
+                    isLoading={isSubscriptionLoading}
+                    labels={directionAnalysis.map((item) => item.direction)}
+                  >
+                    <div className="pro-feature-section">
+                      <h2>BUY / SELL別の勝率</h2>
+                      <div className="analysis-list">
+                        {directionAnalysis.map((item) => (
+                          <div className="analysis-card" key={item.direction}>
+                            <h3>{item.direction}</h3>
+                            <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
+                            <p>{item.winCount}勝 / {item.totalTrades}取引</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </ProFeatureLock>
+
+                  <ProFeatureLock
+                    title="通貨ペア別の勝率"
+                    isPro={isPro}
+                    isLoading={isSubscriptionLoading}
+                    labels={symbolAnalysis.map((item) => item.symbol)}
+                  >
+                    <div className="pro-feature-section">
+                      <h2>通貨ペア別の勝率</h2>
+                      <div className="analysis-list">
+                        {symbolAnalysis.map((item) => (
+                          <div className="analysis-card" key={item.symbol}>
+                            <h3>{item.symbol}</h3>
+                            <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
+                            <p>{item.winCount}勝 / {item.totalTrades}取引</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </ProFeatureLock>
+
+                  <ProFeatureLock
+                    title="手法別の成績"
+                    isPro={isPro}
+                    isLoading={isSubscriptionLoading}
+                    labels={methodPerformance.map((item) => item.method)}
+                  >
+                    <div className="pro-feature-section">
+                      <h2>手法別の成績</h2>
+                      <div className="method-analysis-search">
+                        <label htmlFor="method-analysis-search">手法を検索</label>
+                        <input
+                          id="method-analysis-search"
+                          type="search"
+                          value={methodSearch}
+                          onChange={(event) => setMethodSearch(event.target.value)}
+                          placeholder="手法名を入力"
+                        />
+                      </div>
+
+                      {filteredMethodPerformance.length === 0 ? (
+                        <p className="method-analysis-empty">
+                          {methodPerformance.length === 0 ? "取引データがありません。" : "一致する手法がありません。"}
+                        </p>
+                      ) : (
+                        <div className="analysis-list method-analysis-list">
+                          {filteredMethodPerformance.map((item) => (
+                            <div className="analysis-card method-analysis-card" key={item.method}>
+                              <h3>{item.method}</h3>
+                              <p className="analysis-rate">{item.winRate.toFixed(1)}%</p>
+                              <p className="method-analysis-rate-label">勝率</p>
+                              <div className="method-analysis-counts">
+                                <p><span>取引数</span><strong>{item.totalTrades}</strong></p>
+                                <p><span>勝ち</span><strong>{item.winCount}</strong></p>
+                                <p><span>負け</span><strong>{item.lossCount}</strong></p>
+                                <p><span>引き分け</span><strong>{item.drawCount}</strong></p>
+                              </div>
+                              <div className="method-analysis-totals">
+                                <p><span>総損益</span><strong>{formatSignedProfitGroups(item.profitByCurrency)}</strong></p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </ProFeatureLock>
 
                   <div className="analysis-actions">
                     <button onClick={testAIAnalysis} disabled={isAnalyzing}>
