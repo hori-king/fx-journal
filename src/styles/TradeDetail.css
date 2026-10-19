@@ -330,6 +330,12 @@
   font-size: 14px;
 }
 
+.detail-ai-chart-note {
+  margin: 8px 0 20px;
+  color: #8fa5bd;
+  font-size: 12px;
+}
+
 .ai-usage-period {
   margin: 0 0 16px;
   padding: 10px 12px;

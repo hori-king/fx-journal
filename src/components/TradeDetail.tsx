@@ -97,6 +97,9 @@ function TradeDetail({
       >
         {isAnalyzing ? "AI分析中..." : "🤖 この取引をAI分析"}
       </button>
+      {getTradeChartImages(trade).length > 0 && (
+        <p className="detail-ai-chart-note">登録済みのチャート画像も分析対象になります。</p>
+      )}
 
       {getTradeChartImages(trade).length > 0 && (
         <section className="detail-section">

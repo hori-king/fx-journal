@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test tests/aiUsage.test.ts",
+    "test": "tsx --test tests/aiUsage.test.ts tests/chartImages.test.ts",
     "start": "node dist/server.js"
   },
   "keywords": [],

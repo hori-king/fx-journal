@@ -108,6 +108,7 @@ export async function requestFullAIAnalysis(trades: Trade[]): Promise<AIAnalysis
 
 export async function requestSingleAIAnalysis(trade: Trade, priceMove: number, priceMoveUnit: string): Promise<AIAnalysisResponse<SingleAIAnalysis>> {
   return postAnalysis<SingleAIAnalysis>("/api/ai-analysis-single", {
+    tradeId: trade.id,
     symbol: trade.symbol,
     direction: trade.direction,
     entry: trade.entry,

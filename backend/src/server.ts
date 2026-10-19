@@ -3,8 +3,9 @@ import cors from "cors";
 import OpenAI from "openai";
 import "dotenv/config";
 import { AIUsageServiceError, finalizeAIUsage, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
+import { ChartImageLoadError, loadOwnedTradeChartImages, type AIChartImage } from "./chartImages.js";
 
-type AuthenticatedRequest = Request & { authUserId?: string };
+type AuthenticatedRequest = Request & { authUserId?: string; authAccessToken?: string };
 type JsonObject = Record<string, unknown>;
 
 const app = express();
@@ -67,6 +68,7 @@ function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunctio
       return;
     }
     req.authUserId = user.id;
+    req.authAccessToken = match[1];
     next();
   }).catch(() => {
     console.error("Supabase token verification failed");
@@ -157,8 +159,11 @@ function isCurrencyTotals(value: unknown): value is JsonObject {
     && Object.entries(value).every(([currency, amount]) => isString(currency, 8, false) && isFiniteNumber(amount));
 }
 
-function validateSingleAnalysis(body: unknown): body is JsonObject {
-  return validateTrade(body);
+function validateSingleAnalysis(body: unknown): body is JsonObject & { tradeId: string } {
+  if (!isObject(body) || typeof body.tradeId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.tradeId)) return false;
+  const trade = { ...body };
+  delete trade.tradeId;
+  return validateTrade(trade);
 }
 
 function validateFullAnalysisResult(value: unknown): value is {
@@ -196,6 +201,7 @@ async function runAIAnalysis<T>(
   endpoint: string,
   prompt: string,
   validateResult: (value: unknown) => value is T,
+  chartImages: AIChartImage[] = [],
 ) {
   const userId = req.authUserId;
   if (!userId) {
@@ -210,8 +216,21 @@ async function runAIAnalysis<T>(
       userId,
       analysisType,
       async () => {
+        const input = chartImages.length > 0
+          ? [{
+            role: "user" as const,
+            content: [
+              { type: "input_text" as const, text: prompt },
+              ...chartImages.map((image) => ({
+                type: "input_image" as const,
+                image_url: image.dataUrl,
+                detail: "high" as const,
+              })),
+            ],
+          }]
+          : prompt;
         const response = await openai.responses.create(
-          { model: "gpt-5.6-luna", input: prompt },
+          { model: "gpt-5.6-luna", input, ...(analysisType === "single" ? { store: false } : {}) },
           { timeout: 10 * 60 * 1000 },
         );
         const analysis: unknown = JSON.parse(response.output_text);
@@ -315,20 +334,51 @@ app.post("/api/ai-analysis", requireAuth, rateLimitByUser, async (req, res) => {
 });
 
 app.post("/api/ai-analysis-single", requireAuth, rateLimitByUser, async (req, res) => {
-  if (!validateSingleAnalysis(req.body)) {
+  const requestBody: unknown = req.body;
+  if (!validateSingleAnalysis(requestBody)) {
     invalidInput(res);
     return;
   }
-  await runAIAnalysis(req as AuthenticatedRequest, res, "single", "/api/ai-analysis-single", `
+  const authenticatedRequest = req as AuthenticatedRequest;
+  if (!authenticatedRequest.authAccessToken) {
+    res.status(401).json({ error: "ログイン状態を確認できません。再度ログインしてください。" });
+    return;
+  }
+
+  let chartImages: AIChartImage[];
+  try {
+    chartImages = await loadOwnedTradeChartImages(requestBody.tradeId, authenticatedRequest.authAccessToken);
+  } catch (error) {
+    if (error instanceof ChartImageLoadError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    console.error("Trade chart image loading failed", { endpoint: "/api/ai-analysis-single" });
+    res.status(503).json({ error: "チャート画像を読み込めませんでした。時間をおいて再度お試しください。" });
+    return;
+  }
+
+  const chartContext = chartImages.length > 0 ? `
+      添付された${chartImages.length}枚の取引チャート画像も、この取引データと合わせて分析してください。
+      画像から明確に確認できる範囲で、エントリー位置・決済位置・相場の方向性・トレンド・サポート/レジスタンス・手法や根拠との整合性を振り返ってください。
+      画像が不鮮明、情報不足、または特定できない内容は推測せず、その旨を明記してください。画像上の価格や時間を読み違える可能性にも留意してください。
+      ` : "";
+  const tradeDataForAI: JsonObject = {};
+  for (const [key, value] of Object.entries(requestBody)) {
+    if (key !== "tradeId") tradeDataForAI[key] = value;
+  }
+
+  await runAIAnalysis(authenticatedRequest, res, "single", "/api/ai-analysis-single", `
       以下はユーザーのFX取引分析データです。
-      ${JSON.stringify(req.body, null, 2)}
+      ${JSON.stringify(tradeDataForAI, null, 2)}
+      ${chartContext}
       この1件の取引について分析してください。
       特に取引結果、RRと損益、エントリー条件、TP / SL、保有時間、BUY / SELL、根拠、良かった点、注意点、改善ポイントを確認してください。
       必ず以下のJSON形式だけで回答してください。
       {"summary":"この取引の総合的な分析","goodPoints":["良かった点"],"cautions":["注意点"],"improvements":["改善ポイント"]}
       JSON以外の文章は出力しないでください。
-      データに存在しない事実を作らず、チャートから判断したような説明をせず、1件だけの取引から一般的な傾向や将来の利益・勝率を断定せず、投資判断や売買推奨をしないでください。
-      `, validateSingleAnalysisResult);
+      データや画像から確認できない事実を作らず、チャート画像が添付されている場合は画像上で明確に確認できる内容に限って説明してください。1件だけの取引から一般的な傾向や将来の利益・勝率を断定せず、投資判断や売買推奨をしないでください。
+      `, validateSingleAnalysisResult, chartImages);
 });
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
