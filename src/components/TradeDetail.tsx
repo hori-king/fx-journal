@@ -229,52 +229,51 @@ function TradeDetail({
 
           <div className="ai-section">
             <h3>良かった点</h3>
-
-            <ul>
-              {singleAiAnalysis.goodPoints.map((point, index) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="ai-section">
-            <h3>注意点</h3>
-
-            <ul>
-              {singleAiAnalysis.cautions.map((point, index) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
+            {singleAiAnalysis.goodPoints.length > 0
+              ? <ul>{singleAiAnalysis.goodPoints.map((point, index) => <li key={index}>{point}</li>)}</ul>
+              : <p>特筆できる点はありません。</p>}
           </div>
 
           <div className="ai-section">
             <h3>改善ポイント</h3>
-
-            <ul>
-              {singleAiAnalysis.improvements.map((point, index) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
-
+            {singleAiAnalysis.improvements.length > 0
+              ? <ul>{singleAiAnalysis.improvements.map((point, index) => <li key={index}>{point}</li>)}</ul>
+              : <p>改善点を特定できませんでした。</p>}
           </div>
 
-          {singleAiAnalysis.imageFindings && (
-            <div className="ai-section ai-image-analysis">
-              <h3>画像から読み取れたこと</h3>
-              {singleAiAnalysis.imageFindings.length > 0 ? (
-                <ul>{singleAiAnalysis.imageFindings.map((finding, index) => <li key={index}>{finding}</li>)}</ul>
-              ) : <p>画像から明確に確認できる情報はありませんでした。</p>}
-            </div>
-          )}
+          <div className="ai-section ai-next-action">
+            <h3>次回意識すること</h3>
+            <p>{singleAiAnalysis.nextAction}</p>
+          </div>
 
-          {singleAiAnalysis.imageLimitations && (
-            <div className="ai-section ai-image-analysis">
-              <h3>画像では確認できないこと</h3>
-              {singleAiAnalysis.imageLimitations.length > 0 ? (
-                <ul>{singleAiAnalysis.imageLimitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul>
-              ) : <p>分析に必要な範囲で、特に確認できない項目はありませんでした。</p>}
+          <details className="ai-details">
+            <summary>詳細を見る</summary>
+            <div className="ai-details-grid">
+              <div className="ai-section"><h3>エントリー評価</h3><p>{singleAiAnalysis.details.entryEvaluation}</p></div>
+              <div className="ai-section"><h3>利確・損切り評価</h3><p>{singleAiAnalysis.details.exitEvaluation}</p></div>
+              <div className="ai-section"><h3>トレンド</h3><p>{singleAiAnalysis.details.trend}</p></div>
+              <div className="ai-section"><h3>サポート / レジスタンス</h3><p>{singleAiAnalysis.details.supportResistance}</p></div>
+              <div className="ai-section"><h3>手法との整合性</h3><p>{singleAiAnalysis.details.strategyConsistency}</p></div>
+
+              {singleAiAnalysis.details.imageFindings && (
+                <div className="ai-section ai-image-analysis">
+                  <h3>画像から読み取れたこと</h3>
+                  {singleAiAnalysis.details.imageFindings.length > 0
+                    ? <ul>{singleAiAnalysis.details.imageFindings.map((finding, index) => <li key={index}>{finding}</li>)}</ul>
+                    : <p>画像から明確に確認できる情報はありませんでした。</p>}
+                </div>
+              )}
+
+              {singleAiAnalysis.details.imageLimitations && (
+                <div className="ai-section ai-image-analysis">
+                  <h3>画像では確認できないこと</h3>
+                  {singleAiAnalysis.details.imageLimitations.length > 0
+                    ? <ul>{singleAiAnalysis.details.imageLimitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul>
+                    : <p>特に確認できない項目はありませんでした。</p>}
+                </div>
+              )}
             </div>
-          )}
+          </details>
 
         </div>
       )}

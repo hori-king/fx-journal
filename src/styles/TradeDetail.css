@@ -324,6 +324,33 @@
   border-color: #26384a;
 }
 
+.ai-next-action {
+  border-color: #12677c;
+}
+
+.ai-details {
+  margin-top: 16px;
+}
+
+.ai-details > summary {
+  width: fit-content;
+  padding: 9px 14px;
+  border: 1px solid #29445b;
+  border-radius: 8px;
+  color: #67d4ed;
+  cursor: pointer;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.ai-details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.ai-details-grid > .ai-section:first-child {
+  margin-top: 0;
+}
+
 /* エラー表示 */
 
 .ai-error {

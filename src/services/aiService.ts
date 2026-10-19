@@ -11,10 +11,17 @@ export type AIAnalysis = {
 export type SingleAIAnalysis = {
   summary: string;
   goodPoints: string[];
-  cautions: string[];
   improvements: string[];
-  imageFindings?: string[];
-  imageLimitations?: string[];
+  nextAction: string;
+  details: {
+    entryEvaluation: string;
+    exitEvaluation: string;
+    trend: string;
+    supportResistance: string;
+    strategyConsistency: string;
+    imageFindings?: string[];
+    imageLimitations?: string[];
+  };
 };
 
 export type AIUsageWindow = {
