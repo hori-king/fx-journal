@@ -33,6 +33,7 @@ test("requires the exact allowlisted test user and confirmation before deletion"
 test("deletes only the allowlisted user's AI usage and returns the deleted count", async () => {
   let requestUrl: URL | null = null;
   let authorization: string | null = null;
+  let apiKey: string | null = null;
   const deletedCount = await resetTestUserAIUsage({
     supabaseUrl: "https://project.supabase.co/",
     serviceRoleKey: "service-role-secret",
@@ -42,6 +43,7 @@ test("deletes only the allowlisted user's AI usage and returns the deleted count
     fetcher: async (input, init) => {
       requestUrl = new URL(input.toString());
       authorization = new Headers(init?.headers).get("authorization");
+      apiKey = new Headers(init?.headers).get("apikey");
       return new Response(JSON.stringify([{ id: "one" }, { id: "two" }]), { status: 200 });
     },
   });
@@ -49,5 +51,22 @@ test("deletes only the allowlisted user's AI usage and returns the deleted count
   assert.equal(requestUrl?.searchParams.get("user_id"), `eq.${testUserId}`);
   assert.equal(requestUrl?.searchParams.get("select"), "id");
   assert.equal(authorization, "Bearer service-role-secret");
+  assert.equal(apiKey, "service-role-secret");
   assert.equal(deletedCount, 2);
+});
+
+test("reports Supabase permission errors without exposing credentials", async () => {
+  await assert.rejects(resetTestUserAIUsage({
+    supabaseUrl: "https://project.supabase.co",
+    serviceRoleKey: "service-role-secret",
+    targetUserId: testUserId,
+    allowedTestUserId: testUserId,
+    confirmation: `RESET ${testUserId}`,
+    fetcher: async () => new Response("permission denied", { status: 403 }),
+  }), (error: unknown) => {
+    assert.ok(error instanceof AIUsageResetError);
+    assert.equal(error.message, "Supabaseで利用履歴を削除できませんでした（HTTP 403）。");
+    assert.equal(error.message.includes("service-role-secret"), false);
+    return true;
+  });
 });
