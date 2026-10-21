@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cors from "cors";
 import OpenAI from "openai";
 import "dotenv/config";
-import { AIUsageServiceError, finalizeAIUsage, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
+import { AIUsageServiceError, finalizeAIUsage, getAIUsageStatus, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
 import { ChartImageLoadError, loadOwnedTradeChartImages, type AIChartImage } from "./chartImages.js";
 
 type AuthenticatedRequest = Request & { authUserId?: string; authAccessToken?: string };
@@ -336,6 +336,25 @@ function invalidInput(res: Response) {
 
 app.get("/", (_req, res) => {
   res.json({ message: "AI分析バックエンドが起動しています" });
+});
+
+app.get("/api/ai-usage", requireAuth, async (req, res) => {
+  const userId = (req as AuthenticatedRequest).authUserId;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    res.json(await getAIUsageStatus(userId));
+  } catch (error) {
+    if (error instanceof AIUsageServiceError) {
+      console.error("AI usage status unavailable", { endpoint: "/api/ai-usage" });
+      res.status(503).json({ error: "AI利用状況を取得できません。時間をおいて再度お試しください。" });
+      return;
+    }
+    console.error("AI usage status request failed", { endpoint: "/api/ai-usage" });
+    res.status(500).json({ error: "契約情報を取得できませんでした。" });
+  }
 });
 
 app.post("/api/ai-analysis", requireAuth, rateLimitByUser, async (req, res) => {

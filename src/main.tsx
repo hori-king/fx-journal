@@ -11,6 +11,7 @@ import './styles/Auth.css'
 import './styles/ResponsiveOverrides.css'
 import './styles/Community.css'
 import './styles/Notifications.css'
+import './styles/PlanManagement.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

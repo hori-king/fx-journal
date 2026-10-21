@@ -20,6 +20,18 @@ export type AIUsageClaim = {
   resetAt: string;
 };
 
+export type AIUsageStatus = {
+  plan: AIPlan;
+  periodStart: string;
+  periodEnd: string;
+  proStartedAt: string | null;
+  proEndsAt: string | null;
+  autoRenew: boolean;
+  cancelAtPeriodEnd: boolean;
+  single: { usedCount: number; limit: number; remaining: number };
+  all: { usedCount: number; limit: number; remaining: number };
+};
+
 export class AIUsageServiceError extends Error {
   constructor() {
     super("AI利用状況を確認できませんでした");
@@ -66,7 +78,28 @@ function isUsageClaim(value: unknown): value is AIUsageClaim {
     && typeof value.resetAt === "string";
 }
 
-async function callUsageRPC<T>(functionName: string, body: Record<string, unknown>, isValid: (value: unknown) => value is T): Promise<T> {
+function isAIUsageStatus(value: unknown): value is AIUsageStatus {
+  const isQuota = (quota: unknown, expectedLimit: number): quota is AIUsageStatus["single"] =>
+    isObject(quota)
+    && Number.isInteger(quota.usedCount)
+    && Number.isInteger(quota.limit)
+    && quota.limit === expectedLimit
+    && Number.isInteger(quota.remaining)
+    && (quota.usedCount as number) >= 0
+    && (quota.remaining as number) >= 0;
+  return isObject(value)
+    && (value.plan === "free" || value.plan === "pro")
+    && typeof value.periodStart === "string"
+    && typeof value.periodEnd === "string"
+    && (value.proStartedAt === null || typeof value.proStartedAt === "string")
+    && (value.proEndsAt === null || typeof value.proEndsAt === "string")
+    && typeof value.autoRenew === "boolean"
+    && typeof value.cancelAtPeriodEnd === "boolean"
+    && isQuota(value.single, value.plan === "pro" ? 20 : 3)
+    && isQuota(value.all, value.plan === "pro" ? 5 : 1);
+}
+
+async function callUsageRPC<T>(functionName: string, body: Record<string, unknown>, isValid: (value: unknown) => value is T, fetcher: typeof fetch = fetch): Promise<T> {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) {
@@ -79,7 +112,7 @@ async function callUsageRPC<T>(functionName: string, body: Record<string, unknow
 
   let response: Response;
   try {
-    response = await fetch(`${url}/rest/v1/rpc/${functionName}`, {
+    response = await fetcher(`${url}/rest/v1/rpc/${functionName}`, {
       method: "POST",
       headers: {
         apikey: serviceRoleKey,
@@ -138,6 +171,10 @@ async function callUsageRPC<T>(functionName: string, body: Record<string, unknow
 
 export function claimAIUsage(userId: string, analysisType: AIAnalysisType): Promise<AIUsageClaim> {
   return callUsageRPC("claim_ai_usage", { p_user_id: userId, p_analysis_type: analysisType }, isUsageClaim);
+}
+
+export function getAIUsageStatus(userId: string, fetcher: typeof fetch = fetch): Promise<AIUsageStatus> {
+  return callUsageRPC("get_ai_usage_status", { p_user_id: userId }, isAIUsageStatus, fetcher);
 }
 
 function isBoolean(value: unknown): value is boolean {

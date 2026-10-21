@@ -1,0 +1,56 @@
+.plan-page { display: grid; gap: 22px; }
+.plan-heading, .plan-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.plan-heading h2, .plan-section-heading h3 { margin: 0; }
+.plan-heading h2 { font-size: 26px; }
+.plan-secondary-button { width: auto; min-height: 40px; border: 1px solid #29394a; background: #121d29; color: #c7d4e0; }
+.plan-status-card, .plan-usage-card, .plan-upgrade-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #223247;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(18, 29, 43, .98), rgba(12, 20, 31, .98));
+}
+.plan-status-card.is-pro { border-color: rgba(56, 189, 248, .44); }
+.plan-status-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.plan-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 11px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+.plan-badge.free { border-color: #475569; background: rgba(71, 85, 105, .16); color: #cbd5e1; }
+.plan-badge.pro { border-color: #0e7490; background: rgba(14, 116, 144, .18); color: #67e8f9; }
+.plan-price { color: #dbeafe; font-size: 14px; font-weight: 700; }
+.plan-status-card > h3 { margin: 22px 0 4px; color: #94a3b8; font-size: 13px; font-weight: 600; }
+.plan-status-name { margin: 0; color: #f8fafc; font-size: 25px; font-weight: 800; }
+.plan-contract-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0 0; }
+.plan-contract-details > div { min-width: 0; padding: 13px 15px; border: 1px solid #223247; border-radius: 10px; background: rgba(8, 15, 25, .58); }
+.plan-contract-details dt { margin-bottom: 6px; color: #8ba0b8; font-size: 12px; }
+.plan-contract-details dd { margin: 0; color: #e6eef7; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.plan-section-heading { margin-top: 8px; }
+.plan-section-heading > span { color: #8294a8; font-size: 12px; }
+.plan-usage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.plan-usage-card { padding: 19px 20px; background: #101a27; }
+.plan-usage-copy { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.plan-usage-copy h3 { margin: 0; color: #dce7f2; font-size: 14px; }
+.plan-usage-copy p { margin: 0; color: #8ea2b8; white-space: nowrap; }
+.plan-usage-copy strong { color: #f4f8fc; font-size: 21px; font-variant-numeric: tabular-nums; }
+.plan-usage-track { height: 8px; margin-top: 16px; overflow: hidden; border-radius: 999px; background: #08111c; }
+.plan-usage-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0e7490, #38bdf8); transition: width .2s ease; }
+.plan-usage-remaining { margin: 9px 0 0; color: #91a4b8; font-size: 12px; }
+.plan-upgrade-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-color: #214052; background: linear-gradient(110deg, rgba(14, 116, 144, .14), #101a27 58%); }
+.plan-upgrade-card h3 { margin: 0 0 8px; font-size: 18px; }
+.plan-upgrade-card p:not(.trade-search-subtitle) { margin: 0 0 10px; color: #9cafc2; font-size: 13px; line-height: 1.7; }
+.plan-upgrade-card strong { color: #d9f5ff; font-size: 14px; }
+.plan-upgrade-card button { flex: 0 0 auto; width: auto; min-height: 44px; background: #0e7490; color: #ecfeff; }
+.plan-preparation-message { flex-basis: 100%; margin: 0; color: #a5e9f8; font-size: 13px; }
+.plan-upgrade-card { flex-wrap: wrap; }
+.plan-message { margin: 0; padding: 20px; border: 1px solid #223247; border-radius: 12px; background: #101a27; color: #9cafc2; }
+.plan-error { color: #fda4af; }
+
+@media (max-width: 700px) {
+  .plan-page { gap: 17px; }
+  .plan-heading h2 { font-size: 22px; }
+  .plan-status-card, .plan-upgrade-card { padding: 19px; }
+  .plan-contract-details { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .plan-usage-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .plan-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .plan-upgrade-card { align-items: stretch; flex-direction: column; gap: 16px; }
+  .plan-upgrade-card button { width: 100%; }
+  .plan-preparation-message { margin-top: -4px; }
+}

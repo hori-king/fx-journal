@@ -23,11 +23,12 @@ import { getCurrentSession, signOut } from "./services/authService";
 import { supabase } from "./lib/supabaseClient";
 import CommunityPage from "./components/CommunityPage";
 import NotificationsPage from "./components/NotificationsPage";
+import PlanManagementPage from "./components/PlanManagementPage";
 import { loadUnreadNotificationCount } from "./services/notificationService";
 import { isAiMockModeEnabled, requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type AIUsageWindow, type SingleAIAnalysis } from "./services/aiService";
 import { useSubscription } from "./hooks/useSubscription";
 
-type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
+type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications" | "plan";
 const profitCurrencyOptions = ["JPY", "USD", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "SGD", "HKD", "CNH", "MXN", "ZAR", "TRY", "PLN", "DKK", "HUF", "NOK", "SEK"];
 
 function AIUsagePeriod({ window }: { window: AIUsageWindow }) {
@@ -493,6 +494,7 @@ function App() {
                     ["trades", "取引", "≡"],
                     ["community", "コミュニティ", "◎"],
                     ["notifications", "通知", "♢"],
+                    ["plan", "プラン", "◇"],
                   ] as const).map(([page, label, icon]) => (
                     <button
                       key={page}
@@ -909,6 +911,10 @@ function App() {
                     setHomePage("community");
                   }}
                 />
+              )}
+
+              {!showForm && homePage === "plan" && userId && (
+                <PlanManagementPage key={userId} userId={userId} />
               )}
 
               {showForm && (
