@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
-import { createAIAnalysisDataset, type Trade } from "../tradeData";
+import { createAIAnalysisDataset, getTradeChartImages, type Trade } from "../tradeData";
+import { runWithAIMockMode, shouldUseAIMockMode } from "./aiMockMode";
 
 export type AIAnalysis = {
   summary: string;
@@ -31,7 +32,42 @@ export type AIUsageWindow = {
   timeZone: "Asia/Tokyo";
 };
 
-export type AIAnalysisResponse<T> = { analysis: T; usage: AIUsageWindow };
+export type AIAnalysisResponse<T> = { analysis: T; usage?: AIUsageWindow };
+
+export function isAiMockModeEnabled(): boolean {
+  return shouldUseAIMockMode({
+    development: import.meta.env.DEV,
+    production: import.meta.env.PROD,
+    setting: import.meta.env.VITE_AI_MOCK_MODE,
+  });
+}
+
+const mockFullAnalysis: AIAnalysis = {
+  summary: "サンプル取引では勝率と損益が安定しています。取引数が少ないため、傾向の判断は継続記録後に行ってください。",
+  strengths: ["取引ルールに沿った記録ができています。", "損益の振り返りに必要な項目が揃っています。"],
+  weaknesses: ["サンプル結果のため、統計的な傾向は判断できません。"],
+  improvements: ["同じ条件の取引を記録し、一定数たまってから比較してください。"],
+};
+
+function createMockSingleAnalysis(hasChartImages: boolean): SingleAIAnalysis {
+  return {
+    summary: "エントリーと決済の記録を確認できました。画像上の価格表示は参考情報として扱い、取引データと一致する範囲で振り返ります。",
+    goodPoints: ["エントリーと決済価格を記録しています。", "取引根拠を残しています。"],
+    improvements: ["エントリー時に見ていた条件を一言で記録してください。", "決済理由も記録すると次回比較しやすくなります。"],
+    nextAction: "次回はエントリー条件と決済理由を取引メモに残してください。",
+    details: {
+      entryEvaluation: "サンプル結果です。実際の取引条件に基づく評価ではありません。",
+      exitEvaluation: "サンプル結果です。損切り・利確ルールの実行状況は実データで確認してください。",
+      trend: hasChartImages ? "モック表示：チャート上のローソク足や方向性は実際には判定していません。" : "チャート画像がないため、トレンドは判断できません。",
+      supportResistance: hasChartImages ? "モック表示：ラインや価格帯は実際には読み取っていません。" : "チャート画像がないため、価格帯は判断できません。",
+      strategyConsistency: "サンプル結果です。登録された根拠と実際の相場状況の一致は判定していません。",
+      ...(hasChartImages ? {
+        imageFindings: ["モック表示：画像をAIへ送信せず、サンプル項目を表示しています。"],
+        imageLimitations: ["実際のローソク足・価格・ラインはこのモック結果では分析していません。"],
+      } : {}),
+    },
+  };
+}
 
 const apiBaseUrl = import.meta.env.VITE_AI_API_URL?.replace(/\/+$/, "")
   || (import.meta.env.DEV ? "http://localhost:3001" : "");
@@ -109,34 +145,44 @@ async function postAnalysis<T>(path: string, payload: unknown): Promise<AIAnalys
 }
 
 export async function requestFullAIAnalysis(trades: Trade[]): Promise<AIAnalysisResponse<AIAnalysis>> {
-  const latestTrades = [...trades]
-    .sort((left, right) => new Date(right.entryTime).getTime() - new Date(left.entryTime).getTime())
-    .slice(0, 100);
-  return postAnalysis<AIAnalysis>("/api/ai-analysis", createAIAnalysisDataset(latestTrades));
+  return runWithAIMockMode(
+    isAiMockModeEnabled(),
+    () => ({ analysis: mockFullAnalysis }),
+    () => {
+      const latestTrades = [...trades]
+        .sort((left, right) => new Date(right.entryTime).getTime() - new Date(left.entryTime).getTime())
+        .slice(0, 100);
+      return postAnalysis<AIAnalysis>("/api/ai-analysis", createAIAnalysisDataset(latestTrades));
+    },
+  );
 }
 
 export async function requestSingleAIAnalysis(trade: Trade, priceMove: number, priceMoveUnit: string): Promise<AIAnalysisResponse<SingleAIAnalysis>> {
-  return postAnalysis<SingleAIAnalysis>("/api/ai-analysis-single", {
-    tradeId: trade.id,
-    symbol: trade.symbol,
-    direction: trade.direction,
-    entry: trade.entry,
-    exit: trade.exit,
-    lot: trade.lot,
-    leverage: trade.leverage ?? null,
-    timeframe: trade.timeframe,
-    reason: trade.reason,
-    methods: trade.methods,
-    takeProfit: trade.takeProfit,
-    stopLoss: trade.stopLoss,
-    profit: trade.profit,
-    profitCurrency: trade.profitCurrency ?? "JPY",
-    priceMove,
-    priceMoveUnit,
-    rr: trade.rr,
-    result: trade.result,
-    holdingTime: trade.holdingTime,
-    entryTime: trade.entryTime,
-    exitTime: trade.exitTime,
-  });
+  return runWithAIMockMode(
+    isAiMockModeEnabled(),
+    () => ({ analysis: createMockSingleAnalysis(getTradeChartImages(trade).length > 0) }),
+    () => postAnalysis<SingleAIAnalysis>("/api/ai-analysis-single", {
+      tradeId: trade.id,
+      symbol: trade.symbol,
+      direction: trade.direction,
+      entry: trade.entry,
+      exit: trade.exit,
+      lot: trade.lot,
+      leverage: trade.leverage ?? null,
+      timeframe: trade.timeframe,
+      reason: trade.reason,
+      methods: trade.methods,
+      takeProfit: trade.takeProfit,
+      stopLoss: trade.stopLoss,
+      profit: trade.profit,
+      profitCurrency: trade.profitCurrency ?? "JPY",
+      priceMove,
+      priceMoveUnit,
+      rr: trade.rr,
+      result: trade.result,
+      holdingTime: trade.holdingTime,
+      entryTime: trade.entryTime,
+      exitTime: trade.exitTime,
+    }),
+  );
 }

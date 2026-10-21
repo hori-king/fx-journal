@@ -24,7 +24,7 @@ import { supabase } from "./lib/supabaseClient";
 import CommunityPage from "./components/CommunityPage";
 import NotificationsPage from "./components/NotificationsPage";
 import { loadUnreadNotificationCount } from "./services/notificationService";
-import { requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type AIUsageWindow, type SingleAIAnalysis } from "./services/aiService";
+import { isAiMockModeEnabled, requestFullAIAnalysis, requestSingleAIAnalysis, type AIAnalysis, type AIUsageWindow, type SingleAIAnalysis } from "./services/aiService";
 import { useSubscription } from "./hooks/useSubscription";
 
 type HomePage = "overview" | "analysis" | "trades" | "community" | "notifications";
@@ -328,7 +328,7 @@ function App() {
       const response = await requestFullAIAnalysis(tradeList);
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
         setAiAnalysis(response.analysis);
-        setFullAIUsageWindow(response.usage);
+        setFullAIUsageWindow(response.usage ?? null);
       }
     } catch (error) {
       console.error("AI分析エラー:", error);
@@ -353,7 +353,7 @@ function App() {
 
       if (currentUserIdRef.current === requestUserId && requestGeneration === aiRequestGenerationRef.current) {
         setSingleAiAnalysis(response.analysis);
-        setSingleAIUsageWindow(response.usage);
+        setSingleAIUsageWindow(response.usage ?? null);
       }
 
     } catch (error) {
@@ -679,6 +679,7 @@ function App() {
                   {aiAnalysis && (
                     <div className="ai-analysis">
                       <h2>🤖 AI分析</h2>
+                      {isAiMockModeEnabled() && <p className="ai-mock-notice">開発用モック結果です。OpenAI APIと利用回数には影響しません。</p>}
                       {fullAIUsageWindow && <AIUsagePeriod window={fullAIUsageWindow} />}
                       <div className="ai-section">
                         <h3>📊 全体分析</h3>

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test tests/aiUsage.test.ts tests/chartImages.test.ts",
+    "test": "tsx --test tests/aiUsage.test.ts tests/chartImages.test.ts tests/aiUsageAdmin.test.ts tests/aiMockMode.test.ts",
+    "reset-ai-usage": "tsx src/resetAIUsage.ts",
     "start": "node dist/server.js"
   },
   "keywords": [],

@@ -328,6 +328,15 @@
   border-color: #12677c;
 }
 
+.ai-mock-notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #12677c;
+  border-radius: 8px;
+  color: #9be8f5;
+  font-size: 13px;
+}
+
 .ai-details {
   margin-top: 16px;
 }

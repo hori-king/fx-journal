@@ -1,5 +1,5 @@
 import { formatTradePriceMove, getMoveUnit, getTradeChartImages, type Trade } from "../tradeData";
-import type { AIUsageWindow, SingleAIAnalysis } from "../services/aiService";
+import { isAiMockModeEnabled, type AIUsageWindow, type SingleAIAnalysis } from "../services/aiService";
 
 interface TradeDetailProps {
   trade: Trade;
@@ -220,6 +220,7 @@ function TradeDetail({
         <div className="ai-analysis">
 
           <h2>🤖 AI分析</h2>
+          {isAiMockModeEnabled() && <p className="ai-mock-notice">開発用モック結果です。OpenAI APIと利用回数には影響しません。</p>}
           {aiUsageWindow && <AIUsagePeriod window={aiUsageWindow} />}
 
           <div className="ai-section">
