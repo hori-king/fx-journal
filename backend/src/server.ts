@@ -4,8 +4,9 @@ import OpenAI from "openai";
 import "dotenv/config";
 import { AIUsageServiceError, finalizeAIUsage, getAIUsageStatus, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
 import { ChartImageLoadError, loadOwnedTradeChartImages, type AIChartImage } from "./chartImages.js";
+import { createProCheckout, handleStripeWebhook, StripeBillingError } from "./stripeBilling.js";
 
-type AuthenticatedRequest = Request & { authUserId?: string; authAccessToken?: string };
+type AuthenticatedRequest = Request & { authUserId?: string; authAccessToken?: string; authEmail?: string };
 type JsonObject = Record<string, unknown>;
 
 const app = express();
@@ -39,6 +40,27 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors({ origin: [...allowedOrigins], methods: ["GET", "POST", "OPTIONS"], allowedHeaders: ["Content-Type", "Authorization"] }));
+
+// Stripe署名検証には未加工のbodyが必要なため、このrouteはexpress.jsonより前に登録する。
+app.post("/api/stripe/webhook", express.raw({ type: "application/json", limit: "1mb" }), async (req, res) => {
+  if (!Buffer.isBuffer(req.body)) {
+    res.status(400).json({ error: "Webhook本文が正しくありません。" });
+    return;
+  }
+  try {
+    await handleStripeWebhook(req.body, req.get("stripe-signature"));
+    res.status(200).json({ received: true });
+  } catch (error) {
+    if (error instanceof StripeBillingError) {
+      console.error("Stripe webhook rejected", { status: error.statusCode, errorName: error.name });
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    console.error("Stripe webhook processing failed");
+    res.status(500).json({ error: "Webhookを処理できませんでした。" });
+  }
+});
+
 app.use(express.json({ limit: bodyLimit, strict: true }));
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -69,6 +91,7 @@ function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunctio
     }
     req.authUserId = user.id;
     req.authAccessToken = match[1];
+    req.authEmail = typeof user.email === "string" ? user.email : undefined;
     next();
   }).catch(() => {
     console.error("Supabase token verification failed");
@@ -354,6 +377,25 @@ app.get("/api/ai-usage", requireAuth, async (req, res) => {
     }
     console.error("AI usage status request failed", { endpoint: "/api/ai-usage" });
     res.status(500).json({ error: "契約情報を取得できませんでした。" });
+  }
+});
+
+app.post("/api/billing/checkout", requireAuth, async (req, res) => {
+  const authenticated = req as AuthenticatedRequest;
+  if (!authenticated.authUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const url = await createProCheckout(authenticated.authUserId, authenticated.authEmail);
+    res.status(200).json({ url });
+  } catch (error) {
+    if (error instanceof StripeBillingError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    console.error("Stripe Checkout creation failed", { endpoint: "/api/billing/checkout" });
+    res.status(503).json({ error: "決済画面を開始できませんでした。時間をおいて再度お試しください。" });
   }
 });
 

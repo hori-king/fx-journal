@@ -19,7 +19,7 @@ function ProFeatureLock({ title, isPro, isLoading, labels = [], compact = false,
   const extraLabelCount = Math.max(0, labels.length - visibleLabels.length);
   const planInfo = showPlanInfo && (
     <p className="pro-feature-plan-info">
-      Proプランは月額580円（税込）を予定しています。プラン変更機能は準備中です。
+      Proプランは月額580円（税込）です。プラン画面から契約手続きへ進めます。
     </p>
   );
 

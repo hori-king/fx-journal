@@ -75,7 +75,10 @@ function App() {
   const isPro = subscription?.plan === "pro";
   const isSubscriptionLoading = userId !== null && subscription === null && subscriptionError === null;
   const [showForm, setShowForm] = useState(false);
-  const [homePage, setHomePage] = useState<HomePage>("overview");
+  const [homePage, setHomePage] = useState<HomePage>(() => {
+    const checkoutReturn = new URLSearchParams(window.location.search).get("checkout");
+    return checkoutReturn === "success" || checkoutReturn === "cancel" ? "plan" : "overview";
+  });
   const [tradePage, setTradePage] = useState(0);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);

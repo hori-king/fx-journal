@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { loadMyAIUsageStatus, type AIUsageQuota, type AIUsageStatus } from "../services/aiUsageService";
+import { createProCheckoutSession, loadMyAIUsageStatus, type AIUsageQuota, type AIUsageStatus } from "../services/aiUsageService";
 
 type PlanManagementPageProps = { userId: string };
+
+function clearCheckoutQuery() {
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.delete("checkout");
+  window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+}
 
 function formatJst(value: string | null): string {
   if (!value) return "未設定";
@@ -46,22 +52,51 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(() => {
+    const checkout = new URLSearchParams(window.location.search).get("checkout");
+    if (checkout === "success") return "決済情報を確認しています。Proへの反映まで少しお待ちください。";
+    if (checkout === "cancel") return "決済手続きはキャンセルされました。契約状態に変更はありません。";
+    return null;
+  });
 
   useEffect(() => {
     let active = true;
-    loadMyAIUsageStatus()
+    let pollTimer: number | undefined;
+    const checkoutSucceeded = new URLSearchParams(window.location.search).get("checkout") === "success";
+    const pollForWebhook = (attempt: number) => {
+      if (!active || attempt >= 10) return;
+      pollTimer = window.setTimeout(() => {
+        void loadMyAIUsageStatus().then((usageStatus) => {
+          if (!active) return;
+          setStatus(usageStatus);
+          if (usageStatus.plan === "pro") {
+            setCheckoutNotice("Proプランへの切り替えが完了しました。");
+            clearCheckoutQuery();
+          } else {
+            pollForWebhook(attempt + 1);
+          }
+        }).catch(() => pollForWebhook(attempt + 1));
+      }, 2500);
+    };
+
+    void loadMyAIUsageStatus()
       .then((usageStatus) => {
-        if (active) setStatus(usageStatus);
+        if (!active) return;
+        setStatus(usageStatus);
+        if (checkoutSucceeded && usageStatus.plan !== "pro") pollForWebhook(0);
+        if (checkoutSucceeded && usageStatus.plan === "pro") {
+          setCheckoutNotice("Proプランへの切り替えが完了しました。");
+          clearCheckoutQuery();
+        }
       })
       .catch((loadError: unknown) => {
         console.error("契約管理情報の読み込みに失敗しました:", loadError);
         if (active) setError(loadError instanceof Error ? loadError.message : "契約情報を取得できませんでした。");
       })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => { active = false; };
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; if (pollTimer !== undefined) window.clearTimeout(pollTimer); };
   }, [userId, refreshKey]);
 
   function refreshStatus() {
@@ -69,6 +104,18 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
     setStatus(null);
     setError(null);
     setRefreshKey((current) => current + 1);
+  }
+
+  async function startCheckout() {
+    setIsStartingCheckout(true);
+    setUpgradeMessage(null);
+    try {
+      const checkoutUrl = await createProCheckoutSession();
+      window.location.assign(checkoutUrl);
+    } catch (checkoutError) {
+      setUpgradeMessage(checkoutError instanceof Error ? checkoutError.message : "決済画面を開始できませんでした。");
+      setIsStartingCheckout(false);
+    }
   }
 
   if (isLoading) {
@@ -94,6 +141,8 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
         <div><p className="trade-search-subtitle">PLAN &amp; BILLING</p><h2>プラン・契約管理</h2></div>
         <button type="button" className="plan-secondary-button" onClick={refreshStatus}>再読み込み</button>
       </div>
+
+      {checkoutNotice && <p className="plan-message" role="status">{checkoutNotice}</p>}
 
       <article className={`plan-status-card${isPro ? " is-pro" : " is-free"}`}>
         <div className="plan-status-topline">
@@ -131,8 +180,8 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
             <p>詳細な分析機能と、より多くのAI分析をご利用いただけます。</p>
             <strong>月額580円（税込）</strong>
           </div>
-          <button type="button" onClick={() => setUpgradeMessage("決済機能は現在準備中です。利用開始できるようになったら、この画面からご案内します。")}>
-            Proにアップグレード
+          <button type="button" onClick={() => void startCheckout()} disabled={isStartingCheckout}>
+            {isStartingCheckout ? "決済画面を準備しています…" : "Proにアップグレード"}
           </button>
           {upgradeMessage && <p className="plan-preparation-message" role="status">{upgradeMessage}</p>}
         </article>

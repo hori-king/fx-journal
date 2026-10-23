@@ -73,3 +73,33 @@ export async function loadMyAIUsageStatus(): Promise<AIUsageStatus> {
   if (!isAIUsageStatus(body)) throw new Error("契約情報の形式を確認できませんでした。");
   return body;
 }
+
+export async function createProCheckoutSession(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (error || !accessToken) throw new Error("ログイン状態を確認してください。");
+  if (!apiBaseUrl) throw new Error("決済サービスのURLが設定されていません。");
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/api/billing/checkout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch {
+    throw new Error("決済画面へ接続できません。時間をおいて再度お試しください。");
+  }
+
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = isObject(body) && typeof body.error === "string" ? body.error : null;
+    throw new Error(message ?? "決済画面を開始できませんでした。");
+  }
+  if (!isObject(body) || typeof body.url !== "string") throw new Error("決済画面URLを取得できませんでした。");
+  const checkoutUrl = new URL(body.url);
+  if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") {
+    throw new Error("安全でない決済画面URLを受け取りました。");
+  }
+  return checkoutUrl.toString();
+}
