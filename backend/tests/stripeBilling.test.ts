@@ -24,9 +24,9 @@ test("Pro price accepts only active tax-inclusive JPY 580 monthly Price", () => 
   assert.equal(validateProPrice({ ...monthlyPrice, active: false }), false);
 });
 
-test("only a paid subscription invoice event can activate Pro", () => {
-  assert.equal(stripeEventCanActivatePro("invoice.payment_succeeded"), true);
-  assert.equal(stripeEventCanActivatePro("invoice.paid"), false);
+test("only invoice.paid can activate Pro", () => {
+  assert.equal(stripeEventCanActivatePro("invoice.paid"), true);
+  assert.equal(stripeEventCanActivatePro("invoice.payment_succeeded"), false);
   assert.equal(stripeEventCanActivatePro("checkout.session.completed"), false);
   assert.equal(stripeEventCanActivatePro("invoice.payment_failed"), false);
   assert.equal(stripeEventCanActivatePro("customer.subscription.updated"), false);
@@ -90,15 +90,16 @@ test("paid invoice webhook sends verified payment time and account mapping to th
 
   const event = {
     id: "evt_invoice_paid_1",
-    type: "invoice.payment_succeeded",
+    type: "invoice.paid",
     created: now,
     data: { object: {
       id: "in_test_1",
       customer: "cus_test_1",
-      subscription: "sub_pro_1",
+      parent: { type: "subscription_details", subscription_details: { subscription: "sub_pro_1" } },
       status: "paid",
       amount_paid: 580,
       currency: "jpy",
+      paid_out_of_band: false,
       billing_reason: "subscription_create",
       status_transitions: { paid_at: now - 10 },
     } },
@@ -109,7 +110,7 @@ test("paid invoice webhook sends verified payment time and account mapping to th
 
   assert.deepEqual(rpcBody, {
     p_event_id: "evt_invoice_paid_1",
-    p_event_type: "invoice.payment_succeeded",
+    p_event_type: "invoice.paid",
     p_customer_id: "cus_test_1",
     p_subscription_id: "sub_pro_1",
     p_user_id: "user-uuid-1",
@@ -146,8 +147,13 @@ test("Checkout uses only the backend Price and does not create a client-selected
 
   const observed = new Map<string, URLSearchParams>();
   const calledRPCs: string[] = [];
+  const stripeVersions: string[] = [];
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    if (url.origin === "https://api.stripe.com") {
+      const headers = new Headers(init?.headers);
+      stripeVersions.push(headers.get("Stripe-Version") ?? "");
+    }
     if (url.pathname === "/v1/prices/price_server_configured") return Response.json(monthlyPrice);
     if (url.pathname.startsWith("/rest/v1/rpc/")) {
       const name = url.pathname.split("/").at(-1) ?? "";
@@ -185,6 +191,37 @@ test("Checkout uses only the backend Price and does not create a client-selected
   assert.equal(checkout.has("plan"), false);
   assert.equal(customer.get("email"), "private@example.com");
   assert.deepEqual(calledRPCs, ["reserve_pro_checkout", "set_pro_checkout_customer"]);
+  assert.ok(stripeVersions.length > 0 && stripeVersions.every((version) => version === "2026-09-30.endive"));
+});
+
+test("invoice.paid marked out of band does not grant Pro", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "http://localhost:5173/";
+  process.env.STRIPE_CANCEL_URL = "http://localhost:5173/";
+  process.env.FRONTEND_ORIGIN = "http://localhost:5173";
+  globalThis.fetch = async () => { throw new Error("out-of-band invoice must not call Stripe or Supabase"); };
+
+  const now = Math.floor(Date.now() / 1000);
+  const event = {
+    id: "evt_invoice_oob", type: "invoice.paid", created: now,
+    data: { object: { id: "in_oob", customer: "cus_test_1", subscription: "sub_test_1", paid_out_of_band: true } },
+  };
+  const body = Buffer.from(JSON.stringify(event));
+  const signature = createHmac("sha256", "unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
+  await handleStripeWebhook(body, `t=${now},v1=${signature}`);
 });
 
 test("failed renewal cancels Stripe immediately before recording the Free transition", async (t) => {

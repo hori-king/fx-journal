@@ -43,6 +43,10 @@ function stripeApiBase(): string {
   return "https://api.stripe.com/v1";
 }
 
+// Pin REST payloads to the current API. Configure the Dashboard webhook endpoint
+// to this same version so invoice and subscription snapshots match this parser.
+const STRIPE_API_VERSION = "2026-09-30.endive";
+
 async function stripeRequest<T>(path: string, method: "GET" | "POST", params?: URLSearchParams, idempotencyKey?: string): Promise<T> {
   const { secretKey } = stripeConfiguration();
   const isGet = method === "GET";
@@ -54,6 +58,7 @@ async function stripeRequest<T>(path: string, method: "GET" | "POST", params?: U
       method,
       headers: {
         Authorization: `Bearer ${secretKey}`,
+        "Stripe-Version": STRIPE_API_VERSION,
         ...(isGet ? {} : { "Content-Type": "application/x-www-form-urlencoded" }),
         ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
@@ -125,7 +130,7 @@ export function validateProPrice(price: unknown): boolean {
 }
 
 export function stripeEventCanActivatePro(eventType: string): boolean {
-  return eventType === "invoice.payment_succeeded";
+  return eventType === "invoice.paid";
 }
 
 export async function createProCheckout(userId: string, email?: string): Promise<string> {
@@ -298,7 +303,7 @@ async function cancelStripeSubscription(subscriptionId: string, eventId: string)
 
 export async function processStripeWebhook(event: StripeWebhookEvent): Promise<void> {
   if (![
-    "invoice.payment_succeeded", "invoice.payment_failed",
+    "invoice.paid", "invoice.payment_failed",
     "customer.subscription.updated", "customer.subscription.deleted",
   ].includes(event.type)) return;
 
@@ -332,6 +337,9 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
       // 自動再試行との競合などで、古い失敗通知より先に同じ請求が成功していれば解約しない。
       if (currentInvoice.status === "paid") return;
     }
+    // invoice.paid also fires for manually marked invoices. Only Stripe-collected
+    // payments may activate Pro in this application.
+    if (stripeEventCanActivatePro(event.type) && object.paid_out_of_band !== false) return;
     const subscription = await retrieveSubscription(subscriptionId);
     if (!isObject(subscription) || !isObject(subscription.metadata) || typeof subscription.metadata.supabase_user_id !== "string") {
       throw new StripeBillingError("Stripe契約のユーザー紐付けを確認できませんでした。");
