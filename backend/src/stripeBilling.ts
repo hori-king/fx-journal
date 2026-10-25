@@ -14,6 +14,55 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+export function validateCheckoutReturnUrls(
+  frontendOrigin: string,
+  successUrl: string,
+  cancelUrl: string,
+  isProduction: boolean,
+): void {
+  let expectedOrigin: string;
+  try {
+    expectedOrigin = new URL(frontendOrigin).origin;
+  } catch {
+    console.error("Stripe checkout return URL configuration is invalid", { field: "FRONTEND_ORIGIN" });
+    throw new StripeBillingError("FRONTEND_ORIGINのURL形式が正しくありません。");
+  }
+
+  let success: URL;
+  try {
+    success = new URL(successUrl);
+  } catch {
+    console.error("Stripe checkout return URL configuration is invalid", { field: "STRIPE_SUCCESS_URL" });
+    throw new StripeBillingError("STRIPE_SUCCESS_URLのURL形式が正しくありません。");
+  }
+
+  let cancel: URL;
+  try {
+    cancel = new URL(cancelUrl);
+  } catch {
+    console.error("Stripe checkout return URL configuration is invalid", { field: "STRIPE_CANCEL_URL" });
+    throw new StripeBillingError("STRIPE_CANCEL_URLのURL形式が正しくありません。");
+  }
+
+  if (success.origin !== expectedOrigin || cancel.origin !== expectedOrigin) {
+    // Origins are public host/protocol values. Never log URL paths or query values.
+    console.error("Stripe checkout return URL origin mismatch", {
+      frontendOrigin: expectedOrigin,
+      successOrigin: success.origin,
+      cancelOrigin: cancel.origin,
+    });
+    throw new StripeBillingError("STRIPE_SUCCESS_URLとSTRIPE_CANCEL_URLのoriginはFRONTEND_ORIGINと一致させてください。");
+  }
+
+  if (isProduction && (success.protocol !== "https:" || cancel.protocol !== "https:")) {
+    console.error("Stripe checkout return URL must use HTTPS in production", {
+      successProtocol: success.protocol,
+      cancelProtocol: cancel.protocol,
+    });
+    throw new StripeBillingError("本番環境の決済後URLはHTTPSにしてください。");
+  }
+}
+
 function stripeConfiguration() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId = process.env.STRIPE_PRO_PRICE_ID;
@@ -27,15 +76,7 @@ function stripeConfiguration() {
   }
   if (!frontendOrigin) throw new StripeBillingError("決済画面の戻り先が設定されていません。");
 
-  try {
-    const expectedOrigin = new URL(frontendOrigin).origin;
-    const success = new URL(successUrl);
-    const cancel = new URL(cancelUrl);
-    if (success.origin !== expectedOrigin || cancel.origin !== expectedOrigin) throw new Error("origin mismatch");
-    if (process.env.NODE_ENV === "production" && (success.protocol !== "https:" || cancel.protocol !== "https:")) throw new Error("https required");
-  } catch {
-    throw new StripeBillingError("決済後の戻り先URLが不正です。");
-  }
+  validateCheckoutReturnUrls(frontendOrigin, successUrl, cancelUrl, process.env.NODE_ENV === "production");
   return { secretKey, priceId, webhookSecret, successUrl, cancelUrl };
 }
 

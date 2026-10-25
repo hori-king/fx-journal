@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { createProCheckout, handleStripeWebhook, stripeEventCanActivatePro, validateProPrice, verifyStripeSignature } from "../src/stripeBilling.js";
+import { createProCheckout, handleStripeWebhook, stripeEventCanActivatePro, validateCheckoutReturnUrls, validateProPrice, verifyStripeSignature } from "../src/stripeBilling.js";
 
 const monthlyPrice = {
   active: true,
@@ -12,6 +12,36 @@ const monthlyPrice = {
   tax_behavior: "inclusive",
   recurring: { interval: "month", interval_count: 1, trial_period_days: null },
 };
+
+test("Checkout accepts the configured Vercel production origin, path and query parameters", () => {
+  assert.doesNotThrow(() => validateCheckoutReturnUrls(
+    "https://fx-journal-phi.vercel.app",
+    "https://fx-journal-phi.vercel.app/plan?checkout=success",
+    "https://fx-journal-phi.vercel.app/plan?checkout=cancel",
+    true,
+  ));
+  assert.doesNotThrow(() => validateCheckoutReturnUrls(
+    "https://fx-journal-phi.vercel.app/",
+    "https://fx-journal-phi.vercel.app/plan/?checkout=success",
+    "https://fx-journal-phi.vercel.app/plan/?checkout=cancel",
+    true,
+  ));
+});
+
+test("Checkout return URL validation reports malformed, mismatched and insecure production URLs", () => {
+  assert.throws(
+    () => validateCheckoutReturnUrls("https://fx-journal-phi.vercel.app", "not a URL", "https://fx-journal-phi.vercel.app/plan", true),
+    /STRIPE_SUCCESS_URL/,
+  );
+  assert.throws(
+    () => validateCheckoutReturnUrls("https://fx-journal-phi.vercel.app", "https://other.vercel.app/plan?checkout=success", "https://fx-journal-phi.vercel.app/plan?checkout=cancel", true),
+    /origin.*FRONTEND_ORIGIN/,
+  );
+  assert.throws(
+    () => validateCheckoutReturnUrls("http://localhost:5173", "http://localhost:5173/plan", "http://localhost:5173/plan", true),
+    /HTTPS/,
+  );
+});
 
 test("Pro price accepts only active tax-inclusive JPY 580 monthly Price", () => {
   assert.equal(validateProPrice(monthlyPrice), true);
