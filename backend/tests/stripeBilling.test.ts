@@ -62,12 +62,12 @@ test("only invoice.paid can activate Pro", () => {
   assert.equal(stripeEventCanActivatePro("customer.subscription.updated"), false);
 });
 
-test("Stripe webhook signature checks the raw payload, secret and timestamp tolerance", () => {
+test("Stripe webhook signature uses the complete whsec secret and checks raw payload and timestamp", () => {
   const body = Buffer.from(JSON.stringify({ id: "evt_test", type: "invoice.paid" }));
   const secret = "whsec_test_secret";
   const now = Math.floor(Date.now() / 1000);
   const signedPayload = `${now}.${body.toString("utf8")}`;
-  const signature = createHmac("sha256", "test_secret").update(signedPayload).digest("hex");
+  const signature = createHmac("sha256", secret).update(signedPayload).digest("hex");
   const header = `t=${now},v1=${signature}`;
 
   assert.equal(verifyStripeSignature(body, header, secret, now), true);
@@ -75,6 +75,37 @@ test("Stripe webhook signature checks the raw payload, secret and timestamp tole
   assert.equal(verifyStripeSignature(body, header, "whsec_wrong_secret", now), false);
   assert.equal(verifyStripeSignature(body, header, secret, now + 301), false);
   assert.equal(verifyStripeSignature(body, "v1=not-a-signature", secret, now), false);
+});
+
+test("Stripe webhook logs verification failure without exposing secret or signature", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalConsoleInfo = console.info;
+  const logCalls: unknown[][] = [];
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    console.info = originalConsoleInfo;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_private_test_secret";
+  process.env.STRIPE_SUCCESS_URL = "https://fx-journal-phi.vercel.app/plan";
+  process.env.STRIPE_CANCEL_URL = "https://fx-journal-phi.vercel.app/plan";
+  process.env.FRONTEND_ORIGIN = "https://fx-journal-phi.vercel.app";
+  console.info = (...args: unknown[]) => { logCalls.push(args); };
+
+  const now = Math.floor(Date.now() / 1000);
+  await assert.rejects(
+    handleStripeWebhook(Buffer.from("{}"), `t=${now},v1=${"0".repeat(64)}`),
+    /署名を検証できませんでした/,
+  );
+  assert.deepEqual(logCalls, [["Stripe webhook signature verification", { result: "failure" }]]);
+  assert.equal(JSON.stringify(logCalls).includes("private_test_secret"), false);
+  assert.equal(JSON.stringify(logCalls).includes("0".repeat(64)), false);
 });
 
 test("paid invoice webhook sends verified payment time and account mapping to the atomic DB RPC", async (t) => {
@@ -135,7 +166,7 @@ test("paid invoice webhook sends verified payment time and account mapping to th
     } },
   };
   const body = Buffer.from(JSON.stringify(event));
-  const signature = createHmac("sha256", "unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
+  const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
   await handleStripeWebhook(body, `t=${now},v1=${signature}`);
 
   assert.deepEqual(rpcBody, {
@@ -321,7 +352,7 @@ test("invoice.paid marked out of band does not grant Pro", async (t) => {
     data: { object: { id: "in_oob", customer: "cus_test_1", subscription: "sub_test_1", paid_out_of_band: true } },
   };
   const body = Buffer.from(JSON.stringify(event));
-  const signature = createHmac("sha256", "unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
+  const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
   await handleStripeWebhook(body, `t=${now},v1=${signature}`);
 });
 
@@ -376,7 +407,7 @@ test("failed renewal cancels Stripe immediately before recording the Free transi
     data: { object: { id: "in_failed", customer: "cus_test_1", subscription: "sub_failed" } },
   };
   const body = Buffer.from(JSON.stringify(event));
-  const signature = createHmac("sha256", "unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
+  const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
   await handleStripeWebhook(body, `t=${now},v1=${signature}`);
 
   assert.deepEqual(order, ["cancel", "free-transition"]);

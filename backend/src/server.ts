@@ -43,12 +43,19 @@ app.use(cors({ origin: [...allowedOrigins], methods: ["GET", "POST", "OPTIONS"],
 
 // Stripe署名検証には未加工のbodyが必要なため、このrouteはexpress.jsonより前に登録する。
 app.post("/api/stripe/webhook", express.raw({ type: "application/json", limit: "1mb" }), async (req, res) => {
-  if (!Buffer.isBuffer(req.body)) {
+  const bodyIsBuffer = Buffer.isBuffer(req.body);
+  const signatureHeader = req.get("stripe-signature");
+  console.info("Stripe webhook route reached", {
+    bodyIsBuffer,
+    bodyByteLength: bodyIsBuffer ? req.body.length : null,
+    signaturePresent: Boolean(signatureHeader),
+  });
+  if (!bodyIsBuffer) {
     res.status(400).json({ error: "Webhook本文が正しくありません。" });
     return;
   }
   try {
-    await handleStripeWebhook(req.body, req.get("stripe-signature"));
+    await handleStripeWebhook(req.body, signatureHeader);
     res.status(200).json({ received: true });
   } catch (error) {
     if (error instanceof StripeBillingError) {

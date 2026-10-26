@@ -285,7 +285,7 @@ export function verifyStripeSignature(
   if (!timestamp || !/^\d{1,12}$/.test(timestamp) || signatures.length === 0) return false;
   const seconds = Number(timestamp);
   if (!Number.isSafeInteger(seconds) || Math.abs(nowSeconds - seconds) > 300) return false;
-  const expected = createHmac("sha256", secret.slice("whsec_".length)).update(`${timestamp}.`).update(rawBody).digest();
+  const expected = createHmac("sha256", secret).update(`${timestamp}.`).update(rawBody).digest();
   return signatures.some((signature) => {
     if (!/^[a-f0-9]{64}$/i.test(signature)) return false;
     const candidate = Buffer.from(signature, "hex");
@@ -465,7 +465,9 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
 
 export async function handleStripeWebhook(rawBody: Buffer, signatureHeader: string | undefined): Promise<void> {
   const { webhookSecret } = stripeConfiguration();
-  if (!verifyStripeSignature(rawBody, signatureHeader, webhookSecret)) {
+  const verified = verifyStripeSignature(rawBody, signatureHeader, webhookSecret);
+  console.info("Stripe webhook signature verification", { result: verified ? "success" : "failure" });
+  if (!verified) {
     throw new StripeBillingError("Stripe Webhookの署名を検証できませんでした。", 400);
   }
   let payload: unknown;
