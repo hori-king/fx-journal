@@ -302,6 +302,16 @@ function unixIso(value: unknown): string | null {
   return typeof value === "number" && Number.isFinite(value) ? new Date(value * 1000).toISOString() : null;
 }
 
+function maskedStripeId(value: string | null): string | null {
+  if (!value) return null;
+  if (value.length <= 8) return `${value.slice(0, 2)}…`;
+  return `${value.slice(0, 5)}…${value.slice(-3)}`;
+}
+
+function billingDiagnostic(message: string, fields: Record<string, unknown>): void {
+  console.info(message, fields);
+}
+
 function subscriptionPriceId(subscription: JsonObject): string | null {
   const items = subscription.items;
   if (!isObject(items) || !Array.isArray(items.data) || items.data.length !== 1 || !isObject(items.data[0])) return null;
@@ -369,7 +379,10 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
   if (![
     "invoice.paid", "invoice.payment_failed",
     "customer.subscription.updated", "customer.subscription.deleted",
-  ].includes(event.type)) return;
+  ].includes(event.type)) {
+    billingDiagnostic("Stripe billing event skipped", { eventType: event.type, reason: "unsupported_event_type" });
+    return;
+  }
 
   const config = stripeConfiguration();
   const object = event.data.object;
@@ -384,32 +397,80 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
   let periodEnd: string | null;
   let autoRenew: boolean | null;
   let cancelAtPeriodEnd: boolean | null;
+  let invoiceId: string | null = null;
+  let priceIdMatches: boolean | null = null;
 
   if (event.type.startsWith("invoice.")) {
-    const invoiceId = typeof object.id === "string" ? object.id : null;
+    invoiceId = typeof object.id === "string" ? object.id : null;
     subscriptionId = stripeId(object.subscription)
       ?? (isObject(object.parent) && isObject(object.parent.subscription_details)
         ? stripeId(object.parent.subscription_details.subscription)
         : null);
     customerId = stripeId(object.customer);
-    if (!invoiceId || !subscriptionId || !customerId) throw new StripeBillingError("Stripe請求書に契約情報がありません。");
+    const invoiceFields = {
+      eventType: event.type,
+      invoiceId: maskedStripeId(invoiceId),
+      customerId: maskedStripeId(customerId),
+      subscriptionId: maskedStripeId(subscriptionId),
+      paidOutOfBand: typeof object.paid_out_of_band === "boolean" ? object.paid_out_of_band : "missing",
+      invoicePaid: object.status === "paid",
+      invoiceStatus: typeof object.status === "string" ? object.status : null,
+      currency: typeof object.currency === "string" ? object.currency : null,
+      amountPaid: typeof object.amount_paid === "number" ? object.amount_paid : null,
+    };
+    billingDiagnostic("Stripe invoice event received", invoiceFields);
+    if (!invoiceId || !subscriptionId || !customerId) {
+      billingDiagnostic("Stripe billing event skipped", { ...invoiceFields, reason: "invoice_identity_fields_missing", userIdResolved: false });
+      throw new StripeBillingError("Stripe請求書に契約情報がありません。");
+    }
     if (event.type === "invoice.payment_failed") {
       const currentInvoice = await retrieveInvoice(invoiceId);
       if (!isObject(currentInvoice) || stripeId(currentInvoice.customer) !== customerId) {
         throw new StripeBillingError("Stripe請求状態を確認できませんでした。");
       }
       // 自動再試行との競合などで、古い失敗通知より先に同じ請求が成功していれば解約しない。
-      if (currentInvoice.status === "paid") return;
+      if (currentInvoice.status === "paid") {
+        billingDiagnostic("Stripe billing event skipped", { eventType: event.type, invoiceId: maskedStripeId(invoiceId), reason: "invoice_already_paid" });
+        return;
+      }
     }
     // invoice.paid also fires for manually marked invoices. Only Stripe-collected
     // payments may activate Pro in this application.
-    if (stripeEventCanActivatePro(event.type) && object.paid_out_of_band !== false) return;
+    if (stripeEventCanActivatePro(event.type) && object.paid_out_of_band !== false) {
+      billingDiagnostic("Stripe billing event skipped", {
+        ...invoiceFields,
+        userIdResolved: false,
+        priceIdMatches: null,
+        reason: "paid_out_of_band_not_confirmed_false",
+      });
+      return;
+    }
     const subscription = await retrieveSubscription(subscriptionId);
     if (!isObject(subscription) || !isObject(subscription.metadata) || typeof subscription.metadata.supabase_user_id !== "string") {
+      billingDiagnostic("Stripe invoice user mapping failed", {
+        ...invoiceFields,
+        userIdResolved: false,
+        priceIdMatches: null,
+        reason: "subscription_user_metadata_missing",
+      });
       throw new StripeBillingError("Stripe契約のユーザー紐付けを確認できませんでした。");
     }
     userId = subscription.metadata.supabase_user_id;
+    priceIdMatches = subscriptionPriceId(subscription) === config.priceId;
+    const customerMatches = stripeId(subscription.customer) === customerId;
+    billingDiagnostic("Stripe invoice identity resolved", {
+      ...invoiceFields,
+      userIdResolved: true,
+      customerMatches,
+      priceIdMatches,
+    });
     if (!isExpectedSubscription(subscription, customerId, userId, config.priceId)) {
+      billingDiagnostic("Stripe billing event skipped", {
+        ...invoiceFields,
+        userIdResolved: true,
+        priceIdMatches,
+        reason: !priceIdMatches ? "pro_price_id_mismatch" : "subscription_customer_or_user_mapping_mismatch",
+      });
       throw new StripeBillingError("Stripe契約内容がPro価格と一致しません。");
     }
     priceId = config.priceId;
@@ -419,13 +480,27 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
     autoRenew = !cancelAtPeriodEnd && subscription.status === "active";
     paidAt = null;
     if (stripeEventCanActivatePro(event.type)) {
-      if (object.currency !== "jpy" || object.amount_paid !== 580 || object.status !== "paid"
-          || (object.billing_reason !== "subscription_create" && object.billing_reason !== "subscription_cycle")) {
+      const paymentValid = object.currency === "jpy" && object.amount_paid === 580 && object.status === "paid"
+        && (object.billing_reason === "subscription_create" || object.billing_reason === "subscription_cycle");
+      billingDiagnostic("Stripe invoice payment validation", {
+        ...invoiceFields,
+        userIdResolved: true,
+        priceIdMatches,
+        amountValid: object.amount_paid === 580,
+        currencyValid: object.currency === "jpy",
+        billingReason: typeof object.billing_reason === "string" ? object.billing_reason : null,
+        paymentValid,
+      });
+      if (!paymentValid) {
+        billingDiagnostic("Stripe billing event skipped", { ...invoiceFields, userIdResolved: true, priceIdMatches, reason: "invoice_payment_validation_failed" });
         throw new StripeBillingError("決済金額がPro料金と一致しないため、Proを有効化できません。");
       }
       const transitions = object.status_transitions;
       paidAt = isObject(transitions) ? unixIso(transitions.paid_at) : null;
-      if (!paidAt || status !== "active") throw new StripeBillingError("決済完了状態を確認できませんでした。");
+      if (!paidAt || status !== "active") {
+        billingDiagnostic("Stripe billing event skipped", { ...invoiceFields, userIdResolved: true, priceIdMatches, subscriptionStatus: status, reason: "paid_timestamp_missing_or_subscription_inactive" });
+        throw new StripeBillingError("決済完了状態を確認できませんでした。");
+      }
     } else {
       if (status !== "canceled" && status !== "incomplete_expired") await cancelStripeSubscription(subscriptionId, event.id);
     }
@@ -436,7 +511,16 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
       throw new StripeBillingError("Stripe契約イベントのユーザー紐付けがありません。");
     }
     userId = object.metadata.supabase_user_id;
+    priceIdMatches = subscriptionPriceId(object) === config.priceId;
     if (!isExpectedSubscription(object, customerId, userId, config.priceId)) {
+      billingDiagnostic("Stripe billing event skipped", {
+        eventType: event.type,
+        customerId: maskedStripeId(customerId),
+        subscriptionId: maskedStripeId(subscriptionId),
+        userIdResolved: true,
+        priceIdMatches,
+        reason: !priceIdMatches ? "pro_price_id_mismatch" : "subscription_customer_or_user_mapping_mismatch",
+      });
       throw new StripeBillingError("Stripe契約内容がPro価格と一致しません。");
     }
     priceId = config.priceId;
@@ -447,19 +531,43 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
     paidAt = null;
   }
 
-  await stripeRpc("apply_stripe_billing_event", {
-    p_event_id: event.id,
-    p_event_type: event.type,
-    p_customer_id: customerId,
-    p_subscription_id: subscriptionId,
-    p_user_id: userId,
-    p_price_id: priceId,
-    p_subscription_status: status,
-    p_paid_at: paidAt,
-    p_period_end: periodEnd,
-    p_auto_renew: autoRenew,
-    p_cancel_at_period_end: cancelAtPeriodEnd,
-    p_event_created_at: unixIso(event.created),
+  const rpcContext = {
+    eventType: event.type,
+    invoiceId: maskedStripeId(invoiceId),
+    customerId: maskedStripeId(customerId),
+    subscriptionId: maskedStripeId(subscriptionId),
+    userIdResolved: Boolean(userId),
+    priceIdMatches,
+  };
+  billingDiagnostic("Stripe Pro update RPC called", rpcContext);
+  let rpcResult: unknown;
+  try {
+    rpcResult = await stripeRpc<unknown>("apply_stripe_billing_event", {
+      p_event_id: event.id,
+      p_event_type: event.type,
+      p_customer_id: customerId,
+      p_subscription_id: subscriptionId,
+      p_user_id: userId,
+      p_price_id: priceId,
+      p_subscription_status: status,
+      p_paid_at: paidAt,
+      p_period_end: periodEnd,
+      p_auto_renew: autoRenew,
+      p_cancel_at_period_end: cancelAtPeriodEnd,
+      p_event_created_at: unixIso(event.created),
+    });
+  } catch (error) {
+    billingDiagnostic("Stripe Pro update RPC failed", { ...rpcContext, errorName: error instanceof Error ? error.name : "unknown" });
+    throw error;
+  }
+  const rpcOutcome = typeof rpcResult === "string" && (rpcResult === "duplicate" || rpcResult === "applied" || /^applied:\d+$/.test(rpcResult))
+    ? rpcResult
+    : "unexpected_response";
+  const rowsMatch = typeof rpcResult === "string" ? /^applied:(\d+)$/.exec(rpcResult) : null;
+  billingDiagnostic("Stripe Pro update RPC succeeded", {
+    ...rpcContext,
+    rpcOutcome,
+    databaseUpdatedRows: rowsMatch ? Number(rowsMatch[1]) : null,
   });
 }
 

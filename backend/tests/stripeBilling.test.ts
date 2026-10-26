@@ -112,6 +112,8 @@ test("paid invoice webhook sends verified payment time and account mapping to th
   const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
   const previous = new Map(names.map((name) => [name, process.env[name]]));
   const originalFetch = globalThis.fetch;
+  const originalConsoleInfo = console.info;
+  const infoCalls: unknown[][] = [];
   t.after(() => {
     for (const name of names) {
       const value = previous.get(name);
@@ -119,6 +121,7 @@ test("paid invoice webhook sends verified payment time and account mapping to th
       else process.env[name] = value;
     }
     globalThis.fetch = originalFetch;
+    console.info = originalConsoleInfo;
   });
   process.env.STRIPE_SECRET_KEY = "sk_test_unit";
   process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
@@ -128,6 +131,7 @@ test("paid invoice webhook sends verified payment time and account mapping to th
   process.env.FRONTEND_ORIGIN = "http://localhost:5173";
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-secret";
+  console.info = (...args: unknown[]) => { infoCalls.push(args); };
 
   const now = Math.floor(Date.now() / 1000);
   const subscription = {
@@ -144,7 +148,7 @@ test("paid invoice webhook sends verified payment time and account mapping to th
     if (url.startsWith("https://api.stripe.com/v1/subscriptions/sub_pro_1")) return Response.json(subscription);
     if (url.endsWith("/rpc/apply_stripe_billing_event")) {
       rpcBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      return Response.json("applied");
+      return Response.json("applied:1");
     }
     throw new Error(`Unexpected request ${url}`);
   };
@@ -168,6 +172,13 @@ test("paid invoice webhook sends verified payment time and account mapping to th
   const body = Buffer.from(JSON.stringify(event));
   const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
   await handleStripeWebhook(body, `t=${now},v1=${signature}`);
+
+  const resolvedLog = infoCalls.find(([message]) => message === "Stripe invoice identity resolved")?.[1] as Record<string, unknown> | undefined;
+  const rpcLog = infoCalls.find(([message]) => message === "Stripe Pro update RPC succeeded")?.[1] as Record<string, unknown> | undefined;
+  assert.equal(resolvedLog?.userIdResolved, true);
+  assert.equal(resolvedLog?.priceIdMatches, true);
+  assert.equal(rpcLog?.rpcOutcome, "applied:1");
+  assert.equal(rpcLog?.databaseUpdatedRows, 1);
 
   assert.deepEqual(rpcBody, {
     p_event_id: "evt_invoice_paid_1",
@@ -330,6 +341,8 @@ test("invoice.paid marked out of band does not grant Pro", async (t) => {
   const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN"] as const;
   const previous = new Map(names.map((name) => [name, process.env[name]]));
   const originalFetch = globalThis.fetch;
+  const originalConsoleInfo = console.info;
+  const infoCalls: unknown[][] = [];
   t.after(() => {
     for (const name of names) {
       const value = previous.get(name);
@@ -337,6 +350,7 @@ test("invoice.paid marked out of band does not grant Pro", async (t) => {
       else process.env[name] = value;
     }
     globalThis.fetch = originalFetch;
+    console.info = originalConsoleInfo;
   });
   process.env.STRIPE_SECRET_KEY = "sk_test_unit";
   process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
@@ -344,6 +358,7 @@ test("invoice.paid marked out of band does not grant Pro", async (t) => {
   process.env.STRIPE_SUCCESS_URL = "http://localhost:5173/";
   process.env.STRIPE_CANCEL_URL = "http://localhost:5173/";
   process.env.FRONTEND_ORIGIN = "http://localhost:5173";
+  console.info = (...args: unknown[]) => { infoCalls.push(args); };
   globalThis.fetch = async () => { throw new Error("out-of-band invoice must not call Stripe or Supabase"); };
 
   const now = Math.floor(Date.now() / 1000);
@@ -354,6 +369,11 @@ test("invoice.paid marked out of band does not grant Pro", async (t) => {
   const body = Buffer.from(JSON.stringify(event));
   const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
   await handleStripeWebhook(body, `t=${now},v1=${signature}`);
+  const skipped = infoCalls.find(([message]) => message === "Stripe billing event skipped")?.[1] as Record<string, unknown> | undefined;
+  assert.equal(skipped?.reason, "paid_out_of_band_not_confirmed_false");
+  assert.equal(skipped?.paidOutOfBand, true);
+  assert.equal(skipped?.userIdResolved, false);
+  assert.equal(JSON.stringify(infoCalls).includes("in_oob"), false);
 });
 
 test("failed renewal cancels Stripe immediately before recording the Free transition", async (t) => {
