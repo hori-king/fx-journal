@@ -215,13 +215,84 @@ test("Checkout uses only the backend Price and does not create a client-selected
   assert.equal(checkout.get("line_items[0][price]"), "price_server_configured");
   assert.equal(checkout.get("line_items[0][quantity]"), "1");
   assert.equal(checkout.get("payment_method_types[0]"), "card");
+  assert.equal(checkout.get("customer"), "cus_created");
+  assert.equal(checkout.has("customer_email"), false);
+  assert.equal(checkout.get("success_url"), "http://localhost:5173/?checkout=success");
+  assert.equal(checkout.get("cancel_url"), "http://localhost:5173/?checkout=cancel");
   assert.equal(checkout.get("client_reference_id"), "auth-user-1");
+  assert.equal(checkout.get("metadata[supabase_user_id]"), "auth-user-1");
   assert.equal(checkout.get("subscription_data[metadata][supabase_user_id]"), "auth-user-1");
+  assert.ok(Number(checkout.get("expires_at")) > Math.floor(Date.now() / 1000));
   assert.equal(checkout.has("amount"), false);
   assert.equal(checkout.has("plan"), false);
   assert.equal(customer.get("email"), "private@example.com");
   assert.deepEqual(calledRPCs, ["reserve_pro_checkout", "set_pro_checkout_customer"]);
   assert.ok(stripeVersions.length > 0 && stripeVersions.every((version) => version === "2026-09-30.endive"));
+});
+
+test("Checkout API errors log only sanitized Stripe diagnostic fields and request ID", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const logCalls: unknown[][] = [];
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_server_configured";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "https://fx-journal-phi.vercel.app/plan?checkout=success";
+  process.env.STRIPE_CANCEL_URL = "https://fx-journal-phi.vercel.app/plan?checkout=cancel";
+  process.env.FRONTEND_ORIGIN = "https://fx-journal-phi.vercel.app";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-secret";
+  console.error = (...args: unknown[]) => { logCalls.push(args); };
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/v1/prices/price_server_configured") return Response.json(monthlyPrice);
+    if (url.pathname === "/rest/v1/rpc/reserve_pro_checkout") {
+      return Response.json([{ allowed: true, stripe_customer_id: "cus_existing" }]);
+    }
+    if (url.pathname === "/v1/customers/cus_existing") {
+      return Response.json({ id: "cus_existing", metadata: { supabase_user_id: "auth-user-1" } });
+    }
+    if (url.pathname === "/v1/subscriptions") return Response.json({ data: [], has_more: false });
+    if (url.pathname === "/v1/checkout/sessions" && init?.method === "POST") {
+      return Response.json({ error: {
+        type: "invalid_request_error",
+        code: "url_invalid",
+        param: "success_url",
+        message: "Invalid URL for customer@example.com cus_123 and card 4242 4242 4242 4242",
+      } }, { status: 400, headers: { "request-id": "req_checkout_test_123" } });
+    }
+    if (url.pathname === "/rest/v1/rpc/release_pro_checkout") return Response.json(true);
+    throw new Error(`Unexpected request ${url.pathname}`);
+  };
+
+  await assert.rejects(createProCheckout("auth-user-1"), /Stripe決済を開始できませんでした/);
+  const details = logCalls.find(([message]) => message === "Stripe API request failed")?.[1];
+  assert.deepEqual(details, {
+    method: "POST",
+    path: "/checkout/sessions",
+    status: 400,
+    requestId: "req_checkout_test_123",
+    type: "invalid_request_error",
+    code: "url_invalid",
+    param: "success_url",
+    message: "Invalid URL for [redacted-email] [redacted-id] and card [redacted-number]",
+  });
+  assert.equal(JSON.stringify(logCalls).includes("customer@example.com"), false);
+  assert.equal(JSON.stringify(logCalls).includes("4242 4242 4242 4242"), false);
+  assert.equal(JSON.stringify(logCalls).includes("service-role-secret"), false);
+  assert.equal(JSON.stringify(logCalls).includes("sk_test_unit"), false);
 });
 
 test("invoice.paid marked out of band does not grant Pro", async (t) => {

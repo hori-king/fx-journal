@@ -14,6 +14,29 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function safeStripeErrorText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const safe = value
+    .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, "[redacted-email]")
+    .replace(/\b(?:cus|pm|acct|sub|cs|pi|in)_[A-Za-z0-9]+\b/g, "[redacted-id]")
+    .replace(/\b(?:\d[ -]*?){13,19}\b/g, "[redacted-number]")
+    .replace(/[\r\n\t]+/g, " ")
+    .slice(0, maxLength);
+  return safe || undefined;
+}
+
+function stripeErrorLogDetails(payload: unknown, response: Response) {
+  const error = isObject(payload) && isObject(payload.error) ? payload.error : undefined;
+  return {
+    status: response.status,
+    requestId: safeStripeErrorText(response.headers.get("request-id"), 100),
+    type: safeStripeErrorText(error?.type, 64),
+    code: safeStripeErrorText(error?.code, 100),
+    param: safeStripeErrorText(error?.param, 160),
+    message: safeStripeErrorText(error?.message, 500),
+  };
+}
+
 export function validateCheckoutReturnUrls(
   frontendOrigin: string,
   successUrl: string,
@@ -112,10 +135,11 @@ async function stripeRequest<T>(path: string, method: "GET" | "POST", params?: U
 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const code = isObject(payload) && isObject(payload.error) && typeof payload.error.code === "string"
-      ? payload.error.code.replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 48)
-      : undefined;
-    console.error("Stripe API request failed", { method, path, status: response.status, code });
+    console.error("Stripe API request failed", {
+      method,
+      path,
+      ...stripeErrorLogDetails(payload, response),
+    });
     throw new StripeBillingError("Stripe決済を開始できませんでした。設定を確認してください。", response.status >= 500 ? 503 : 400);
   }
   return payload as T;
