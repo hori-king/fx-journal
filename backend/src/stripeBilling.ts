@@ -436,12 +436,12 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
     }
     // invoice.paid also fires for manually marked invoices. Only Stripe-collected
     // payments may activate Pro in this application.
-    if (stripeEventCanActivatePro(event.type) && object.paid_out_of_band !== false) {
+    if (stripeEventCanActivatePro(event.type) && object.paid_out_of_band === true) {
       billingDiagnostic("Stripe billing event skipped", {
         ...invoiceFields,
         userIdResolved: false,
         priceIdMatches: null,
-        reason: "paid_out_of_band_not_confirmed_false",
+        reason: "invoice_paid_out_of_band",
       });
       return;
     }
