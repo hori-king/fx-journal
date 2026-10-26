@@ -214,7 +214,7 @@ test("Checkout uses only the backend Price and does not create a client-selected
   assert.equal(checkout.get("mode"), "subscription");
   assert.equal(checkout.get("line_items[0][price]"), "price_server_configured");
   assert.equal(checkout.get("line_items[0][quantity]"), "1");
-  assert.equal(checkout.get("payment_method_types[0]"), "card");
+  assert.equal(checkout.has("payment_method_types[0]"), false);
   assert.equal(checkout.get("customer"), "cus_created");
   assert.equal(checkout.has("customer_email"), false);
   assert.equal(checkout.get("success_url"), "http://localhost:5173/?checkout=success");

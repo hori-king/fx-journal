@@ -256,7 +256,6 @@ export async function createProCheckout(userId: string, email?: string): Promise
     formValue(sessionForm, "client_reference_id", userId);
     formValue(sessionForm, "line_items[0][price]", config.priceId);
     formValue(sessionForm, "line_items[0][quantity]", 1);
-    formValue(sessionForm, "payment_method_types[0]", "card");
     formValue(sessionForm, "success_url", success.toString());
     formValue(sessionForm, "cancel_url", cancel.toString());
     formValue(sessionForm, "expires_at", Math.floor((Date.now() + 31 * 60_000) / 1000));
