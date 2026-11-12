@@ -11,6 +11,7 @@
   background: linear-gradient(135deg, rgba(18, 29, 43, .98), rgba(12, 20, 31, .98));
 }
 .plan-status-card.is-pro { border-color: rgba(56, 189, 248, .44); }
+.plan-cancellation-notice { margin: 18px 0 0; padding: 13px 15px; border: 1px solid rgba(251, 191, 36, .35); border-radius: 10px; background: rgba(120, 78, 10, .14); color: #fde68a; font-size: 13px; line-height: 1.7; }
 .plan-status-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .plan-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 11px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
 .plan-badge.free { border-color: #475569; background: rgba(71, 85, 105, .16); color: #cbd5e1; }
@@ -42,6 +43,8 @@
 .plan-upgrade-card { flex-wrap: wrap; }
 .plan-message { margin: 0; padding: 20px; border: 1px solid #223247; border-radius: 12px; background: #101a27; color: #9cafc2; }
 .plan-error { color: #fda4af; }
+.plan-portal-actions { display: grid; justify-items: start; gap: 10px; }
+.plan-portal-actions > .plan-message { width: 100%; }
 
 @media (max-width: 700px) {
   .plan-page { gap: 17px; }

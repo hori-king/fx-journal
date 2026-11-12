@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { createProCheckout, handleStripeWebhook, stripeEventCanActivatePro, validateCheckoutReturnUrls, validateProPrice, verifyStripeSignature } from "../src/stripeBilling.js";
+import { createProCheckout, createProCustomerPortalSession, handleStripeWebhook, stripeEventCanActivatePro, validateCheckoutReturnUrls, validateProPrice, verifyStripeSignature } from "../src/stripeBilling.js";
 
 const monthlyPrice = {
   active: true,
@@ -504,4 +504,203 @@ test("failed renewal cancels Stripe immediately before recording the Free transi
   assert.deepEqual(order, ["cancel", "free-transition"]);
   assert.equal(rpcBody?.p_event_type, "invoice.payment_failed");
   assert.equal(rpcBody?.p_subscription_id, "sub_failed");
+});
+
+test("Pro portal session uses only the authenticated user's saved Stripe customer and period-end-only configuration", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "STRIPE_PORTAL_CONFIGURATION_ID", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "https://fx-journal-phi.vercel.app/plan";
+  process.env.STRIPE_CANCEL_URL = "https://fx-journal-phi.vercel.app/plan";
+  process.env.STRIPE_PORTAL_CONFIGURATION_ID = "bpc_periodEnd123";
+  process.env.FRONTEND_ORIGIN = "https://fx-journal-phi.vercel.app";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-secret";
+  const now = Math.floor(Date.now() / 1000);
+  const seenPortalFields: URLSearchParams[] = [];
+  const seenStripeVersions: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/rest/v1/subscriptions") {
+      assert.equal(url.searchParams.get("user_id"), "eq.auth-user-1");
+      assert.equal(url.searchParams.get("select"), "plan,stripe_customer_id,stripe_subscription_id,pro_ends_at");
+      return Response.json([{ plan: "pro", stripe_customer_id: "cus_saved_for_user", stripe_subscription_id: "sub_saved_for_user", pro_ends_at: new Date((now + 86_400) * 1000).toISOString() }]);
+    }
+    if (url.origin === "https://api.stripe.com") seenStripeVersions.push(new Headers(init?.headers).get("Stripe-Version") ?? "");
+    if (url.pathname === "/v1/customers/cus_saved_for_user") return Response.json({ id: "cus_saved_for_user", metadata: { supabase_user_id: "auth-user-1" } });
+    if (url.pathname === "/v1/subscriptions/sub_saved_for_user") return Response.json({
+      id: "sub_saved_for_user", customer: "cus_saved_for_user", status: "active", cancel_at_period_end: true,
+      metadata: { supabase_user_id: "auth-user-1" },
+      items: { data: [{ price: { id: "price_pro_test" }, current_period_end: now + 86_400 }] },
+    });
+    if (url.pathname === "/v1/billing_portal/configurations/bpc_periodEnd123") return Response.json({
+      id: "bpc_periodEnd123", active: true, livemode: false,
+      features: { subscription_cancel: { enabled: true, mode: "at_period_end" } },
+    });
+    if (url.pathname === "/v1/billing_portal/sessions") {
+      assert.equal(init?.method, "POST");
+      seenPortalFields.push(new URLSearchParams(String(init?.body)));
+      return Response.json({ url: "https://billing.stripe.com/p/session/portal_test" });
+    }
+    throw new Error(`Unexpected request ${url.pathname}`);
+  };
+
+  const portalUrl = await createProCustomerPortalSession("auth-user-1");
+  assert.equal(portalUrl, "https://billing.stripe.com/p/session/portal_test");
+  assert.equal(seenPortalFields.length, 1);
+  assert.equal(seenPortalFields[0].get("customer"), "cus_saved_for_user");
+  assert.equal(seenPortalFields[0].get("configuration"), "bpc_periodEnd123");
+  assert.equal(seenPortalFields[0].get("return_url"), "https://fx-journal-phi.vercel.app/plan?portal=return");
+  assert.deepEqual(seenStripeVersions, ["2026-09-30.endive", "2026-09-30.endive", "2026-09-30.endive", "2026-09-30.endive"]);
+  assert.equal(JSON.stringify(seenPortalFields).includes("cus_client_supplied"), false);
+});
+
+test("Free users and portal configurations allowing immediate cancellation are rejected", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "STRIPE_PORTAL_CONFIGURATION_ID", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "http://localhost:5173/plan";
+  process.env.STRIPE_CANCEL_URL = "http://localhost:5173/plan";
+  process.env.STRIPE_PORTAL_CONFIGURATION_ID = "bpc_periodEnd123";
+  process.env.FRONTEND_ORIGIN = "http://localhost:5173";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-secret";
+  let stripeCalls = 0;
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/rest/v1/subscriptions") return Response.json([{ plan: "free", stripe_customer_id: "cus_saved_for_user", stripe_subscription_id: null, pro_ends_at: null }]);
+    stripeCalls += 1;
+    throw new Error("Free user must not start a portal session");
+  };
+  await assert.rejects(createProCustomerPortalSession("auth-user-1"), /有効なPro契約が見つかりません/);
+  assert.equal(stripeCalls, 0);
+
+  const now = Math.floor(Date.now() / 1000);
+  let portalSessionCreated = false;
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/rest/v1/subscriptions") return Response.json([{ plan: "pro", stripe_customer_id: "cus_saved_for_user", stripe_subscription_id: "sub_saved_for_user", pro_ends_at: new Date((now + 86_400) * 1000).toISOString() }]);
+    if (url.pathname === "/v1/customers/cus_saved_for_user") return Response.json({ id: "cus_saved_for_user", metadata: { supabase_user_id: "auth-user-1" } });
+    if (url.pathname === "/v1/subscriptions/sub_saved_for_user") return Response.json({
+      id: "sub_saved_for_user", customer: "cus_saved_for_user", status: "active",
+      metadata: { supabase_user_id: "auth-user-1" }, items: { data: [{ price: { id: "price_pro_test" }, current_period_end: now + 86_400 }] },
+    });
+    if (url.pathname === "/v1/billing_portal/configurations/bpc_periodEnd123") return Response.json({
+      id: "bpc_periodEnd123", active: true, livemode: false,
+      features: { subscription_cancel: { enabled: true, mode: "immediately" } },
+    });
+    if (url.pathname === "/v1/billing_portal/sessions") portalSessionCreated = true;
+    throw new Error(`Unexpected request ${url.pathname}`);
+  };
+  await assert.rejects(createProCustomerPortalSession("auth-user-1"), /期間終了時の解約設定/);
+  assert.equal(portalSessionCreated, false);
+});
+
+test("Checkout reservation keeps an active or cancellation-scheduled Pro subscription from duplicating", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "http://localhost:5173/plan";
+  process.env.STRIPE_CANCEL_URL = "http://localhost:5173/plan";
+  process.env.FRONTEND_ORIGIN = "http://localhost:5173";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-secret";
+  const calls: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    calls.push(url.pathname);
+    if (url.pathname === "/v1/prices/price_pro_test") return Response.json(monthlyPrice);
+    if (url.pathname === "/rest/v1/rpc/reserve_pro_checkout") return Response.json([{ allowed: false, stripe_customer_id: "cus_existing_pro" }]);
+    throw new Error(`Unexpected request ${url.pathname}`);
+  };
+  await assert.rejects(createProCheckout("auth-user-1"), /すでにPro契約中、または決済処理中/);
+  assert.deepEqual(calls, ["/v1/prices/price_pro_test", "/rest/v1/rpc/reserve_pro_checkout"]);
+});
+
+test("subscription.updated reads the current Stripe state instead of a stale webhook snapshot", async (t) => {
+  const names = ["STRIPE_SECRET_KEY", "STRIPE_PRO_PRICE_ID", "STRIPE_WEBHOOK_SECRET", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL", "FRONTEND_ORIGIN", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const previous = new Map(names.map((name) => [name, process.env[name]]));
+  const originalFetch = globalThis.fetch;
+  const originalConsoleInfo = console.info;
+  const logs: unknown[][] = [];
+  t.after(() => {
+    for (const name of names) {
+      const value = previous.get(name);
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+    globalThis.fetch = originalFetch;
+    console.info = originalConsoleInfo;
+  });
+  process.env.STRIPE_SECRET_KEY = "sk_test_unit";
+  process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_unit_secret";
+  process.env.STRIPE_SUCCESS_URL = "http://localhost:5173/";
+  process.env.STRIPE_CANCEL_URL = "http://localhost:5173/";
+  process.env.FRONTEND_ORIGIN = "http://localhost:5173";
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-secret";
+  console.info = (...args: unknown[]) => { logs.push(args); };
+  let rpcBody: Record<string, unknown> | null = null;
+  const now = Math.floor(Date.now() / 1000);
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/v1/subscriptions/sub_current") return Response.json({
+      id: "sub_current", customer: "cus_current", status: "active", cancel_at_period_end: true,
+      metadata: { supabase_user_id: "user-uuid-1" },
+      items: { data: [{ price: { id: "price_pro_test" }, current_period_end: now + 86_400 }] },
+    });
+    if (url.pathname.endsWith("/rpc/apply_stripe_billing_event")) {
+      rpcBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return Response.json("applied:1");
+    }
+    throw new Error(`Unexpected request ${url.pathname}`);
+  };
+  const event = {
+    id: "evt_subscription_update_current", type: "customer.subscription.updated", created: now,
+    data: { object: {
+      id: "sub_current", customer: "cus_current", status: "active", cancel_at_period_end: false,
+      metadata: { supabase_user_id: "user-uuid-1" },
+      items: { data: [{ price: { id: "price_pro_test" }, current_period_end: now + 43_200 }] },
+    } },
+  };
+  const body = Buffer.from(JSON.stringify(event));
+  const signature = createHmac("sha256", "whsec_unit_secret").update(`${now}.${body.toString("utf8")}`).digest("hex");
+  await handleStripeWebhook(body, `t=${now},v1=${signature}`);
+  assert.equal(rpcBody?.p_cancel_at_period_end, true);
+  assert.equal(rpcBody?.p_period_end, new Date((now + 86_400) * 1000).toISOString());
+  assert.equal(logs.some(([message]) => message === "Stripe Pro update RPC succeeded"), true);
 });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createProCheckoutSession, loadMyAIUsageStatus, type AIUsageQuota, type AIUsageStatus } from "../services/aiUsageService";
+import { createProCustomerPortalSession } from "../services/billingService";
 
 type PlanManagementPageProps = { userId: string };
 
@@ -53,6 +54,8 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+  const [portalMessage, setPortalMessage] = useState<string | null>(null);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [checkoutNotice, setCheckoutNotice] = useState<string | null>(() => {
     const checkout = new URLSearchParams(window.location.search).get("checkout");
@@ -65,6 +68,7 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
     let active = true;
     let pollTimer: number | undefined;
     const checkoutSucceeded = new URLSearchParams(window.location.search).get("checkout") === "success";
+    const portalReturned = new URLSearchParams(window.location.search).get("portal") === "return";
     const pollForWebhook = (attempt: number) => {
       if (!active || attempt >= 10) return;
       pollTimer = window.setTimeout(() => {
@@ -89,6 +93,14 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
         if (checkoutSucceeded && usageStatus.plan === "pro") {
           setCheckoutNotice("Proプランへの切り替えが完了しました。");
           clearCheckoutQuery();
+        }
+        if (portalReturned) {
+          setPortalMessage(usageStatus.cancelAtPeriodEnd
+            ? `解約予約を確認しました。契約終了日時（${formatJst(usageStatus.proEndsAt)} 日本時間）まではPro機能を利用できます。`
+            : "契約情報を再取得しました。");
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete("portal");
+          window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
         }
       })
       .catch((loadError: unknown) => {
@@ -115,6 +127,18 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
     } catch (checkoutError) {
       setUpgradeMessage(checkoutError instanceof Error ? checkoutError.message : "決済画面を開始できませんでした。");
       setIsStartingCheckout(false);
+    }
+  }
+
+  async function openCustomerPortal() {
+    setIsOpeningPortal(true);
+    setPortalMessage(null);
+    try {
+      const portalUrl = await createProCustomerPortalSession();
+      window.location.assign(portalUrl);
+    } catch (portalError) {
+      setPortalMessage(portalError instanceof Error ? portalError.message : "契約管理画面を開始できませんでした。");
+      setIsOpeningPortal(false);
     }
   }
 
@@ -164,7 +188,21 @@ function PlanManagementPage({ userId }: PlanManagementPageProps) {
             <div><dt>利用期間終了・リセット</dt><dd>{formatJst(status.periodEnd)}</dd></div>
           </dl>
         )}
+        {isPro && status.cancelAtPeriodEnd && (
+          <p className="plan-cancellation-notice" role="status">
+            解約予定：{formatJst(status.proEndsAt)}（日本時間）。この日まではPro機能を利用できます。
+          </p>
+        )}
       </article>
+
+      {(isPro || portalMessage) && (
+        <div className="plan-portal-actions">
+          {isPro && <button type="button" className="plan-secondary-button" onClick={() => void openCustomerPortal()} disabled={isOpeningPortal}>
+            {isOpeningPortal ? "契約管理画面を開いています…" : "契約を管理・解約"}
+          </button>}
+          {portalMessage && <p className="plan-message" role="status">{portalMessage}</p>}
+        </div>
+      )}
 
       <div className="plan-section-heading"><div><p className="trade-search-subtitle">AI USAGE</p><h3>AI分析の利用状況</h3></div><span>期間終了時にリセット</span></div>
       <div className="plan-usage-grid">

@@ -2,6 +2,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 type JsonObject = Record<string, unknown>;
 type CheckoutReservation = { allowed: boolean; stripe_customer_id: string | null };
+type PortalSubscription = {
+  plan: "free" | "pro";
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  pro_ends_at: string | null;
+};
 
 export class StripeBillingError extends Error {
   constructor(message: string, readonly statusCode = 503) {
@@ -194,6 +200,115 @@ export function validateProPrice(price: unknown): boolean {
     && (price.recurring.trial_period_days === null || price.recurring.trial_period_days === undefined);
 }
 
+function isPortalSubscription(value: unknown): value is PortalSubscription {
+  return isObject(value)
+    && (value.plan === "free" || value.plan === "pro")
+    && (value.stripe_customer_id === null || typeof value.stripe_customer_id === "string")
+    && (value.stripe_subscription_id === null || typeof value.stripe_subscription_id === "string")
+    && (value.pro_ends_at === null || typeof value.pro_ends_at === "string");
+}
+
+function portalConfigurationId(): string {
+  const value = process.env.STRIPE_PORTAL_CONFIGURATION_ID;
+  if (!value || !/^bpc_[A-Za-z0-9]+$/.test(value)) {
+    throw new StripeBillingError("解約画面のStripe設定が不足しています。管理者へお問い合わせください。");
+  }
+  return value;
+}
+
+async function loadPortalSubscription(userId: string): Promise<PortalSubscription> {
+  const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error("Stripe portal subscription lookup configuration is missing");
+    throw new StripeBillingError("契約情報を確認できません。管理者へお問い合わせください。");
+  }
+
+  const query = new URLSearchParams({
+    select: "plan,stripe_customer_id,stripe_subscription_id,pro_ends_at",
+    user_id: `eq.${userId}`,
+    limit: "2",
+  });
+  let response: Response;
+  try {
+    response = await fetch(`${url}/rest/v1/subscriptions?${query}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    throw new StripeBillingError("契約情報を確認できません。時間をおいて再度お試しください。");
+  }
+  if (!response.ok) {
+    console.error("Stripe portal subscription lookup failed", { status: response.status });
+    throw new StripeBillingError("契約情報を確認できません。時間をおいて再度お試しください。");
+  }
+  const rows: unknown = await response.json().catch(() => null);
+  if (!Array.isArray(rows) || rows.length !== 1 || !isPortalSubscription(rows[0])) {
+    throw new StripeBillingError("契約情報を確認できませんでした。再読み込みしてください。", 409);
+  }
+  return rows[0];
+}
+
+function portalReturnUrl(frontendOrigin: string): string {
+  let origin: URL;
+  try {
+    origin = new URL(frontendOrigin);
+  } catch {
+    throw new StripeBillingError("契約管理画面の戻り先が設定されていません。");
+  }
+  if (origin.protocol !== "https:" && process.env.NODE_ENV === "production") {
+    throw new StripeBillingError("本番環境の契約管理画面はHTTPSにしてください。");
+  }
+  return new URL("/plan?portal=return", origin).toString();
+}
+
+export async function createProCustomerPortalSession(userId: string): Promise<string> {
+  const config = stripeConfiguration();
+  const configurationId = portalConfigurationId();
+  const subscriptionRow = await loadPortalSubscription(userId);
+  const currentPeriodEnd = subscriptionRow.pro_ends_at ? Date.parse(subscriptionRow.pro_ends_at) : NaN;
+  if (subscriptionRow.plan !== "pro" || !subscriptionRow.stripe_customer_id || !subscriptionRow.stripe_subscription_id
+      || !Number.isFinite(currentPeriodEnd) || currentPeriodEnd <= Date.now()) {
+    throw new StripeBillingError("有効なPro契約が見つかりません。契約状態を再読み込みしてください。", 409);
+  }
+
+  const [customer, subscription, portalConfiguration] = await Promise.all([
+    stripeRequest<unknown>(`/customers/${encodeURIComponent(subscriptionRow.stripe_customer_id)}`, "GET"),
+    retrieveSubscription(subscriptionRow.stripe_subscription_id),
+    stripeRequest<unknown>(`/billing_portal/configurations/${encodeURIComponent(configurationId)}`, "GET"),
+  ]);
+  if (!isObject(customer) || customer.deleted === true || customer.id !== subscriptionRow.stripe_customer_id
+      || !isObject(customer.metadata) || customer.metadata.supabase_user_id !== userId) {
+    throw new StripeBillingError("Stripe顧客とログインユーザーの紐付けを確認できませんでした。", 409);
+  }
+  if (!isExpectedSubscription(subscription, subscriptionRow.stripe_customer_id, userId, config.priceId)
+      || subscription.id !== subscriptionRow.stripe_subscription_id || subscription.status !== "active"
+      || (subscriptionPeriodEnd(subscription) ? Date.parse(subscriptionPeriodEnd(subscription)!) : 0) <= Date.now()) {
+    throw new StripeBillingError("有効なStripe契約を確認できませんでした。契約状態を再読み込みしてください。", 409);
+  }
+  const features = isObject(portalConfiguration) && isObject(portalConfiguration.features)
+    ? portalConfiguration.features : null;
+  const cancellation = features && isObject(features.subscription_cancel) ? features.subscription_cancel : null;
+  if (!isObject(portalConfiguration) || portalConfiguration.id !== configurationId
+      || portalConfiguration.active !== true || portalConfiguration.livemode !== false
+      || !cancellation || cancellation.enabled !== true || cancellation.mode !== "at_period_end") {
+    console.error("Stripe portal configuration is inactive or allows unsupported cancellation", {
+      configurationId: maskedStripeId(configurationId),
+    });
+    throw new StripeBillingError("Stripe Customer Portalが期間終了時の解約設定になっていません。管理者へお問い合わせください。");
+  }
+
+  const sessionForm = new URLSearchParams();
+  formValue(sessionForm, "customer", subscriptionRow.stripe_customer_id);
+  formValue(sessionForm, "configuration", configurationId);
+  formValue(sessionForm, "return_url", portalReturnUrl(process.env.FRONTEND_ORIGIN ?? ""));
+  const session = await stripeRequest<unknown>("/billing_portal/sessions", "POST", sessionForm);
+  if (!isObject(session) || typeof session.url !== "string" || !session.url.startsWith("https://billing.stripe.com/")) {
+    throw new StripeBillingError("Stripe契約管理画面のURLを取得できませんでした。");
+  }
+  return session.url;
+}
+
 export function stripeEventCanActivatePro(eventType: string): boolean {
   return eventType === "invoice.paid";
 }
@@ -353,7 +468,7 @@ async function cancelStripeSubscription(subscriptionId: string, eventId: string)
   try {
     const response = await fetch(`${stripeApiBase()}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${secretKey}` },
+      headers: { Authorization: `Bearer ${secretKey}`, "Stripe-Version": STRIPE_API_VERSION },
       signal: AbortSignal.timeout(15_000),
     });
     if (response.ok) return;
@@ -398,7 +513,7 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
   let autoRenew: boolean | null;
   let cancelAtPeriodEnd: boolean | null;
   let invoiceId: string | null = null;
-  let priceIdMatches: boolean | null = null;
+  let priceIdMatches: boolean | null;
 
   if (event.type.startsWith("invoice.")) {
     invoiceId = typeof object.id === "string" ? object.id : null;
@@ -510,9 +625,16 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
     if (!subscriptionId || !customerId || !isObject(object.metadata) || typeof object.metadata.supabase_user_id !== "string") {
       throw new StripeBillingError("Stripe契約イベントのユーザー紐付けがありません。");
     }
+    // Webhookのdata.objectはイベント発生時点のスナップショットなので、
+    // Portal操作後に古いupdatedイベントが遅れて届いても現状態で同期する。
+    const subscriptionState = event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted"
+      ? await retrieveSubscription(subscriptionId)
+      : object;
+    if (!isObject(subscriptionState)) throw new StripeBillingError("Stripe契約状態を確認できませんでした。");
     userId = object.metadata.supabase_user_id;
-    priceIdMatches = subscriptionPriceId(object) === config.priceId;
-    if (!isExpectedSubscription(object, customerId, userId, config.priceId)) {
+    priceIdMatches = subscriptionPriceId(subscriptionState) === config.priceId;
+    if (!isExpectedSubscription(subscriptionState, customerId, userId, config.priceId)
+        || subscriptionState.id !== subscriptionId) {
       billingDiagnostic("Stripe billing event skipped", {
         eventType: event.type,
         customerId: maskedStripeId(customerId),
@@ -524,9 +646,9 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
       throw new StripeBillingError("Stripe契約内容がPro価格と一致しません。");
     }
     priceId = config.priceId;
-    status = typeof object.status === "string" ? object.status : null;
-    periodEnd = subscriptionPeriodEnd(object);
-    cancelAtPeriodEnd = object.cancel_at_period_end === true;
+    status = typeof subscriptionState.status === "string" ? subscriptionState.status : null;
+    periodEnd = subscriptionPeriodEnd(subscriptionState);
+    cancelAtPeriodEnd = subscriptionState.cancel_at_period_end === true;
     autoRenew = !cancelAtPeriodEnd && status === "active";
     paidAt = null;
   }

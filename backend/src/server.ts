@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import "dotenv/config";
 import { AIUsageServiceError, finalizeAIUsage, getAIUsageStatus, runMeteredAIAnalysis, toAIUsageWindow, type AIAnalysisType } from "./aiUsage.js";
 import { ChartImageLoadError, loadOwnedTradeChartImages, type AIChartImage } from "./chartImages.js";
-import { createProCheckout, handleStripeWebhook, StripeBillingError } from "./stripeBilling.js";
+import { createProCheckout, createProCustomerPortalSession, handleStripeWebhook, StripeBillingError } from "./stripeBilling.js";
 
 type AuthenticatedRequest = Request & { authUserId?: string; authAccessToken?: string; authEmail?: string };
 type JsonObject = Record<string, unknown>;
@@ -403,6 +403,25 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
     }
     console.error("Stripe Checkout creation failed", { endpoint: "/api/billing/checkout" });
     res.status(503).json({ error: "決済画面を開始できませんでした。時間をおいて再度お試しください。" });
+  }
+});
+
+app.post("/api/billing/portal", requireAuth, async (req, res) => {
+  const authenticated = req as AuthenticatedRequest;
+  if (!authenticated.authUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  try {
+    const url = await createProCustomerPortalSession(authenticated.authUserId);
+    res.status(200).json({ url });
+  } catch (error) {
+    if (error instanceof StripeBillingError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    console.error("Stripe Customer Portal session creation failed", { endpoint: "/api/billing/portal" });
+    res.status(503).json({ error: "契約管理画面を開始できませんでした。時間をおいて再度お試しください。" });
   }
 });
 
