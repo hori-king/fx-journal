@@ -682,7 +682,7 @@ export async function processStripeWebhook(event: StripeWebhookEvent): Promise<v
     billingDiagnostic("Stripe Pro update RPC failed", { ...rpcContext, errorName: error instanceof Error ? error.name : "unknown" });
     throw error;
   }
-  const rpcOutcome = typeof rpcResult === "string" && (rpcResult === "duplicate" || rpcResult === "applied" || /^applied:\d+$/.test(rpcResult))
+  const rpcOutcome = typeof rpcResult === "string" && (rpcResult === "duplicate" || rpcResult === "stale" || rpcResult === "applied" || /^applied:\d+$/.test(rpcResult))
     ? rpcResult
     : "unexpected_response";
   const rowsMatch = typeof rpcResult === "string" ? /^applied:(\d+)$/.exec(rpcResult) : null;
