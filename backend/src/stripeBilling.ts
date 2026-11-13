@@ -259,7 +259,8 @@ function portalReturnUrl(frontendOrigin: string): string {
   if (origin.protocol !== "https:" && process.env.NODE_ENV === "production") {
     throw new StripeBillingError("本番環境の契約管理画面はHTTPSにしてください。");
   }
-  return new URL("/plan?portal=return", origin).toString();
+  // プラン画面はReactの画面状態であり、独立したVercelパスではないため、実在するSPAエントリへ戻す。
+  return new URL("/?portal=return", origin.origin).toString();
 }
 
 export async function createProCustomerPortalSession(userId: string): Promise<string> {

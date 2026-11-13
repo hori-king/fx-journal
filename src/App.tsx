@@ -76,8 +76,10 @@ function App() {
   const isSubscriptionLoading = userId !== null && subscription === null && subscriptionError === null;
   const [showForm, setShowForm] = useState(false);
   const [homePage, setHomePage] = useState<HomePage>(() => {
-    const checkoutReturn = new URLSearchParams(window.location.search).get("checkout");
-    return checkoutReturn === "success" || checkoutReturn === "cancel" ? "plan" : "overview";
+    const returnParams = new URLSearchParams(window.location.search);
+    const checkoutReturn = returnParams.get("checkout");
+    const portalReturned = returnParams.get("portal") === "return";
+    return portalReturned || checkoutReturn === "success" || checkoutReturn === "cancel" ? "plan" : "overview";
   });
   const [tradePage, setTradePage] = useState(0);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);

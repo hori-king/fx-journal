@@ -561,7 +561,7 @@ test("Pro portal session uses only the authenticated user's saved Stripe custome
   assert.equal(seenPortalFields.length, 1);
   assert.equal(seenPortalFields[0].get("customer"), "cus_saved_for_user");
   assert.equal(seenPortalFields[0].get("configuration"), "bpc_periodEnd123");
-  assert.equal(seenPortalFields[0].get("return_url"), "https://fx-journal-phi.vercel.app/plan?portal=return");
+  assert.equal(seenPortalFields[0].get("return_url"), "https://fx-journal-phi.vercel.app/?portal=return");
   assert.deepEqual(seenStripeVersions, ["2026-09-30.endive", "2026-09-30.endive", "2026-09-30.endive", "2026-09-30.endive"]);
   assert.equal(JSON.stringify(seenPortalFields).includes("cus_client_supplied"), false);
 });
